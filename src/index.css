@@ -283,12 +283,6 @@ body[data-theme='dark'] .border {
   box-shadow: 0 0 14px rgba(0, 255, 65, 0.1), inset 0 0 16px rgba(0, 255, 65, 0.04);
 }
 
-/* 筆算セルは数字の視認性優先で等幅フォント＋内側グロー */
-body[data-theme='dark'] .calc-cell {
-  font-family: "Share Tech Mono", "JetBrains Mono", monospace;
-  box-shadow: inset 0 0 8px rgba(0, 255, 65, 0.14);
-}
-
 /* CRT 走査線オーバーレイは廃止（横方向の筋に見えるため）。
    背景は「純黒 ＋ 緑のデジタルレイン」だけにして、余計な縞を一切重ねない。 */
 
@@ -371,33 +365,9 @@ body:is([data-theme='aurora'], [data-theme='sakura'], [data-theme='inferno'], [d
   box-shadow: 0 0 14px rgba(var(--neon), 0.1), inset 0 0 16px rgba(var(--neon), 0.04);
 }
 
-/* 筆算セルは数字の視認性優先で等幅フォント＋内側グロー */
-body:is([data-theme='aurora'], [data-theme='sakura'], [data-theme='inferno'], [data-theme='tenkuu']) .calc-cell {
-  font-family: "Share Tech Mono", "JetBrains Mono", monospace;
-  box-shadow: inset 0 0 8px rgba(var(--neon), 0.14);
-}
-
-/* 筆算グリッド用（トークン化） */
-.calc-grid {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 0;
-}
-.calc-cell {
-  @apply w-12 h-14 flex items-center justify-center text-2xl font-mono transition-all duration-200;
-  border-color: var(--color-line);
-}
-
 /* 横向き最適化 */
 @media (orientation: landscape) {
   .simulator-container {
     height: 100vh;
   }
-}
-
-.calc-cell-focus {
-  @apply bg-blue-50 ring-2 ring-blue-400 ring-inset;
-}
-.calc-cell-active {
-  @apply border-b-2 border-slate-900;
 }

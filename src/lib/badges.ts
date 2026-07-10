@@ -85,11 +85,11 @@ export function computeBadges(d: BadgeData): Badge[] {
       earned: !!(d.masteredModules && d.masteredModules[m.id]),
     })
   );
-  // 最後の称号「【わり算】神」: ほかの全バッジを獲得したときだけ手に入る。
+  // 最後の称号「【がい数】神」: ほかの全バッジを獲得したときだけ手に入る。
   // （この時点の list には自分以外の全バッジが入っているので every で判定）
   list.push({
     id: 'god',
-    title: '【わり算】神',
+    title: '【がい数】神',
     desc: 'すべての バッジを かくとく',
     icon: 'Crown',
     earned: list.every((b) => b.earned),

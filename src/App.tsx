@@ -6,12 +6,12 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Hub } from './components/Hub';
-import { HissanModule } from './components/modules/HissanModule';
-import { MentalModule } from './components/modules/MentalModule';
-import { RulesModule } from './components/modules/RulesModule';
-import { EstimateModule } from './components/modules/EstimateModule';
-import { CheckModule } from './components/modules/CheckModule';
-import { WordProblemModule } from './components/modules/WordProblemModule';
+import { MeaningModule } from './components/modules/MeaningModule';
+import { RoundModule } from './components/modules/RoundModule';
+import { RangeModule } from './components/modules/RangeModule';
+import { SumDiffModule } from './components/modules/SumDiffModule';
+import { ProdQuotModule } from './components/modules/ProdQuotModule';
+import { RoundJudgeModule } from './components/modules/RoundJudgeModule';
 import { ErrorHunterModule } from './components/modules/ErrorHunterModule';
 import { MockTestModule } from './components/modules/MockTestModule';
 import { LogView } from './components/LogView';
@@ -35,22 +35,22 @@ export default function App() {
 
   const renderModule = (id: ModuleId) => {
     switch (id) {
-      case 'hissan':
-        return <HissanModule onExit={goHub} />;
-      case 'mental':
-        return <MentalModule onExit={goHub} />;
-      case 'rules':
-        return <RulesModule onExit={goHub} />;
-      case 'estimate':
-        return <EstimateModule onExit={goHub} />;
-      case 'check':
-        return <CheckModule onExit={goHub} />;
-      case 'word-problem':
-        return <WordProblemModule onExit={goHub} />;
+      case 'meaning':
+        return <MeaningModule onExit={goHub} />;
+      case 'round':
+        return <RoundModule onExit={goHub} />;
+      case 'range':
+        return <RangeModule onExit={goHub} />;
+      case 'sumdiff':
+        return <SumDiffModule onExit={goHub} />;
+      case 'prodquot':
+        return <ProdQuotModule onExit={goHub} />;
+      case 'roundjudge':
+        return <RoundJudgeModule onExit={goHub} />;
       case 'error-hunter':
         return <ErrorHunterModule onExit={goHub} />;
       default:
-        return <HissanModule onExit={goHub} />;
+        return <MeaningModule onExit={goHub} />;
     }
   };
 

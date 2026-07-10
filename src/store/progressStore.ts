@@ -8,12 +8,12 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { getProgressStorage } from '../services/progressRepository';
 
 export type ModuleId =
-  | 'hissan'
-  | 'mental'
-  | 'rules'
-  | 'estimate'
-  | 'check'
-  | 'word-problem'
+  | 'meaning'
+  | 'round'
+  | 'range'
+  | 'sumdiff'
+  | 'prodquot'
+  | 'roundjudge'
   | 'error-hunter'
   | 'mock-test';
 
@@ -60,13 +60,13 @@ export interface SkillMastery {
 /** skillId のプレフィックスから所属モジュールを判定 */
 export function skillToModuleId(skillId: string): ModuleId | null {
   if (skillId === 'mock-test' || skillId.startsWith('mock-')) return 'mock-test';
-  if (skillId.startsWith('hissan-')) return 'hissan';
-  if (skillId.startsWith('mental-')) return 'mental';
-  if (skillId.startsWith('rules-')) return 'rules';
-  if (skillId.startsWith('est-')) return 'estimate';
-  if (skillId.startsWith('check-')) return 'check';
-  if (skillId.startsWith('wp-') || skillId.startsWith('word-')) return 'word-problem';
-  if (skillId.startsWith('eh-') || skillId.startsWith('fix-') || skillId.startsWith('judge-')) return 'error-hunter';
+  if (skillId.startsWith('meaning-')) return 'meaning';
+  if (skillId.startsWith('round-')) return 'round';
+  if (skillId.startsWith('range-')) return 'range';
+  if (skillId.startsWith('sumdiff-')) return 'sumdiff';
+  if (skillId.startsWith('prodquot-')) return 'prodquot';
+  if (skillId.startsWith('roundjudge-')) return 'roundjudge';
+  if (skillId.startsWith('eh-') || skillId.startsWith('fix-')) return 'error-hunter';
   return null;
 }
 
@@ -209,17 +209,9 @@ export const useProgressStore = create<ProgressState>()(
       }),
     }),
     {
-      name: 'hissan_progress_v4',
-      version: 2,
+      name: 'gaisu_progress_v1',
+      version: 1,
       storage: createJSONStorage(() => getProgressStorage()),
-      // v1→v2: 満点回数カウンタを新設。旧データには存在しないため 0 で補う
-      migrate: (persisted) => {
-        const state = persisted as Partial<ProgressState> | undefined;
-        if (state && !state.testPerfectCounts) {
-          state.testPerfectCounts = { omote: 0, ura: 0, total: 0 };
-        }
-        return state as ProgressState;
-      },
     }
   )
 );
