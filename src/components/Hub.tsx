@@ -1,11 +1,11 @@
 /**
- * ホーム＝「わり算ランド」。モジュールをカードで選ぶ。
+ * ホーム＝「がい数ランド」。モジュールをカードで選ぶ。
  * 視覚的混沌を避けるため、余白を広く・1カード1テーマに。
  */
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  Divide, Zap, Compass, CheckCheck, Scale, Search, BookOpen,
+  Milestone, ArrowRightLeft, MoveHorizontal, Plus, Divide, Scale, Search,
   History, Settings as SettingsIcon, Lock, ClipboardCheck, ChevronRight, Flame,
 } from 'lucide-react';
 import { MODULES, ModuleMeta } from '../constants';
@@ -21,7 +21,7 @@ interface Props {
 }
 
 const ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
-  Divide, Zap, Compass, CheckCheck, Scale, Search, BookOpen,
+  Milestone, ArrowRightLeft, MoveHorizontal, Plus, Divide, Scale, Search,
 };
 
 // Tailwind がパージしないよう静的に定義
@@ -120,10 +120,10 @@ export const Hub: React.FC<Props> = ({ onSelectModule, onOpenLog, onStartTest })
           </div>
           <div className="flex items-center justify-center gap-3">
             <h1 className="text-4xl md:text-5xl font-black text-content tracking-tight">
-              わり算の筆算<span className="text-blue-600">ラボEX</span>
+              がい数<span className="text-blue-600">ランド</span>
             </h1>
           </div>
-          <p className="text-muted font-medium mt-2">たてる・かける・ひく・おろす を マスターしよう！</p>
+          <p className="text-muted font-medium mt-2">四捨五入・見積もり を マスターしよう！</p>
         </div>
 
         {/* 本番テストモード */}
@@ -138,7 +138,7 @@ export const Hub: React.FC<Props> = ({ onSelectModule, onOpenLog, onStartTest })
           </div>
           <div className="flex-1">
             <div className="text-xl font-black">📝 本番テストモード</div>
-            <div className="text-sm text-white/85 font-medium">「わり算の筆算」を テストと同じ 問題数で ちょうせん！</div>
+            <div className="text-sm text-white/85 font-medium">「がい数の表し方と使い方」を テストと同じ 問題数で ちょうせん！</div>
           </div>
           <ChevronRight size={28} className="shrink-0 opacity-80" />
         </motion.button>

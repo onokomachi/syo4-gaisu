@@ -1,33 +1,8 @@
-import { Difficulty } from './types';
 import { ModuleId } from './store/progressStore';
 
-/** 筆算シミュレーターのレベル定義（既存） */
-export const LEVEL_CONFIG: Record<Difficulty, { label: string; description: string }> = {
-  '2-1': {
-    label: '2けた ÷ 1けた',
-    description: 'まずはここから！基本の筆算。'
-  },
-  '3-1': {
-    label: '3けた ÷ 1けた',
-    description: '少し長くなります。丁寧にやりましょう。'
-  },
-  '2-2': {
-    label: '2けた ÷ 2けた',
-    description: '「たてる」数の見当をつけよう。'
-  },
-  '3-2': {
-    label: '3けた ÷ 2けた',
-    description: '4年生のクライマックス！'
-  },
-  '3-3': {
-    label: '3けた ÷ 3けた',
-    description: '大きなわる数も 見当づけで たおせる！'
-  }
-};
-
 /**
- * 「わり算ランド」のモジュール一覧。
- * 単元「わり算の筆算（÷1けた・÷2けた）」で身につける知識・技能を段階的に網羅する。
+ * 「がい数ランド」のモジュール一覧。
+ * 単元「がい数の表し方と使い方」で身につける知識・技能を段階的に網羅する。
  */
 export interface ModuleMeta {
   id: ModuleId;
@@ -42,50 +17,50 @@ export interface ModuleMeta {
 
 export const MODULES: ModuleMeta[] = [
   {
-    id: 'mental',
-    title: 'あんざん わり算',
-    description: '九九・何十・何百のわり算を すばやく！',
-    icon: 'Zap',
+    id: 'meaning',
+    title: 'がい数の いみ',
+    description: '約何万・約何千、がい数を つかう場面は？',
+    icon: 'Milestone',
     accent: 'amber',
     status: 'ready',
   },
   {
-    id: 'hissan',
-    title: '筆算シミュレーター',
-    description: 'たてる・かける・ひく・おろす をマスター',
-    icon: 'Divide',
+    id: 'round',
+    title: '四捨五入で がい数に',
+    description: '指定の位・上から1けた／2けたの がい数',
+    icon: 'ArrowRightLeft',
     accent: 'blue',
     status: 'ready',
   },
   {
-    id: 'estimate',
-    title: '商の見当づけ',
-    description: 'どの位に たつ？いくつ たつ？',
-    icon: 'Compass',
+    id: 'range',
+    title: 'もとの数の はんい',
+    description: '以上・未満で、もとの数の はんいを 表そう',
+    icon: 'MoveHorizontal',
     accent: 'violet',
     status: 'ready',
   },
   {
-    id: 'check',
-    title: 'たしかめ算',
-    description: 'わる数×商＋あまり で かくにん',
-    icon: 'CheckCheck',
+    id: 'sumdiff',
+    title: 'たし算・ひき算の 見積もり',
+    description: '百の位までの がい数にして 計算しよう',
+    icon: 'Plus',
     accent: 'emerald',
     status: 'ready',
   },
   {
-    id: 'rules',
-    title: 'わり算のきまり',
-    description: '同じ数で わっても 商は 同じ！',
-    icon: 'Scale',
+    id: 'prodquot',
+    title: 'かけ算・わり算の 見積もり',
+    description: '上から1けたの がい数にして 計算しよう',
+    icon: 'Divide',
     accent: 'cyan',
     status: 'ready',
   },
   {
-    id: 'word-problem',
-    title: 'ことばの もんだい',
-    description: 'あまりを どうする？ しきを 考えよう',
-    icon: 'BookOpen',
+    id: 'roundjudge',
+    title: '切り上げ・切り捨てで 考えよう',
+    description: '場面に あわせて 見積もり方を えらぼう',
+    icon: 'Scale',
     accent: 'teal',
     status: 'ready',
   },
