@@ -6,10 +6,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type Theme = 'light' | 'dark' | 'aurora' | 'sakura' | 'inferno' | 'tenkuu';
+export type Theme = 'light' | 'dark' | 'sakura' | 'war' | 'speedworld' | 'netherworld';
 export type FontScale = 'normal' | 'large' | 'xlarge';
 
-const VALID_THEMES: Theme[] = ['light', 'dark', 'aurora', 'sakura', 'inferno', 'tenkuu'];
+const VALID_THEMES: Theme[] = ['light', 'dark', 'sakura', 'war', 'speedworld', 'netherworld'];
 
 interface SettingsState {
   theme: Theme;
@@ -38,8 +38,8 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'gaisu_settings_v1',
-      version: 2,
-      // v1→v2: 廃止テーマ（和 cream / 深海 deep / 宇宙神 cosmos）は light に戻す
+      version: 3,
+      // v2→v3: 廃止テーマ（極光 aurora / インフェルノ inferno / 天空神 tenkuu）は light に戻す
       migrate: (persisted) => {
         const state = persisted as Partial<SettingsState> | undefined;
         if (state && !VALID_THEMES.includes(state.theme as Theme)) {

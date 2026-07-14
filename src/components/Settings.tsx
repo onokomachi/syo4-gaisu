@@ -4,7 +4,7 @@
  */
 import React from 'react';
 import { motion } from 'motion/react';
-import { X, Sun, Flower2, Terminal, Flame, Sparkles, Cloud, Lock, Music, Music2 } from 'lucide-react';
+import { X, Sun, Flower2, Terminal, Flag, Gauge, Orbit, Lock, Music, Music2 } from 'lucide-react';
 import { useSettingsStore, Theme, FontScale } from '../store/settingsStore';
 import { useProgressStore } from '../store/progressStore';
 import { MODULES } from '../constants';
@@ -18,10 +18,10 @@ interface Props {
 const THEMES: { id: Theme; label: string; icon: React.ReactNode; swatch: string }[] = [
   { id: 'light', label: 'ノーマル', icon: <Sun size={22} />, swatch: 'bg-surface border-slate-300' },
   { id: 'dark', label: 'マトリックス', icon: <Terminal size={22} />, swatch: 'bg-black border-green-500' },
-  { id: 'aurora', label: '極光', icon: <Sparkles size={22} />, swatch: 'bg-[#060c16] border-purple-400' },
   { id: 'sakura', label: '桜吹雪', icon: <Flower2 size={22} />, swatch: 'bg-[#12051c] border-pink-400' },
-  { id: 'inferno', label: 'インフェルノ', icon: <Flame size={22} />, swatch: 'bg-[#0c0100] border-orange-500' },
-  { id: 'tenkuu', label: '天空神', icon: <Cloud size={22} />, swatch: 'bg-[#041022] border-yellow-300' },
+  { id: 'war', label: '戦争', icon: <Flag size={22} />, swatch: 'bg-[#1a0a02] border-orange-500' },
+  { id: 'speedworld', label: 'スピードワールド', icon: <Gauge size={22} />, swatch: 'bg-[#030812] border-cyan-400' },
+  { id: 'netherworld', label: '冥界神', icon: <Orbit size={22} />, swatch: 'bg-[#0a0210] border-purple-500' },
 ];
 
 const FONTS: { id: FontScale; label: string; sample: string }[] = [
@@ -54,7 +54,7 @@ export const Settings: React.FC<Props> = ({ onClose }) => {
   const unselCls = 'border-line hover:border-faint';
   // 暗背景テーマのときはオーバーレイを透明にして、背後の動く背景をそのまま見せる
   // （blur や暗幕で背景がにじまないようにする）。
-  const neonThemes: Theme[] = ['dark', 'aurora', 'sakura', 'inferno', 'tenkuu'];
+  const neonThemes: Theme[] = ['dark', 'sakura', 'war', 'speedworld', 'netherworld'];
   const overlayCls = neonThemes.includes(theme) ? 'bg-black/20' : 'bg-slate-900/40 backdrop-blur-sm';
 
   return (
