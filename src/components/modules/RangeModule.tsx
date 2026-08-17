@@ -25,7 +25,7 @@ export const RangeModule: React.FC<Props> = ({ onExit }) => {
   const [round, setRound] = useState(0);
   const getMasteryStreak = useProgressStore((s) => s.getMasteryStreak);
   const getTodaySkillCount = useProgressStore((s) => s.getTodaySkillCount);
-  const adaptive = useAdaptive<RangeLevel>(LEVEL_IDS, 'range');
+  const adaptive = useAdaptive<RangeLevel>(LEVEL_IDS);
 
   if (mode === 'setup') {
     return (

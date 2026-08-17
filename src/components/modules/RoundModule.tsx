@@ -28,7 +28,7 @@ export const RoundModule: React.FC<Props> = ({ onExit }) => {
   const [round, setRound] = useState(0);
   const getMasteryStreak = useProgressStore((s) => s.getMasteryStreak);
   const getTodaySkillCount = useProgressStore((s) => s.getTodaySkillCount);
-  const adaptive = useAdaptive<RoundLevel>(LEVEL_IDS, 'round');
+  const adaptive = useAdaptive<RoundLevel>(LEVEL_IDS);
 
   if (mode === 'setup') {
     return (

@@ -26,7 +26,7 @@ export const ProdQuotModule: React.FC<Props> = ({ onExit }) => {
   const [round, setRound] = useState(0);
   const getMasteryStreak = useProgressStore((s) => s.getMasteryStreak);
   const getTodaySkillCount = useProgressStore((s) => s.getTodaySkillCount);
-  const adaptive = useAdaptive<ProdQuotLevel>(LEVEL_IDS, 'prodquot');
+  const adaptive = useAdaptive<ProdQuotLevel>(LEVEL_IDS);
 
   if (mode === 'setup') {
     return (

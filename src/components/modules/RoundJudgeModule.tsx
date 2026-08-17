@@ -28,7 +28,7 @@ export const RoundJudgeModule: React.FC<Props> = ({ onExit }) => {
   const [round, setRound] = useState(0);
   const getMasteryStreak = useProgressStore((s) => s.getMasteryStreak);
   const getTodaySkillCount = useProgressStore((s) => s.getTodaySkillCount);
-  const adaptive = useAdaptive<RoundJudgeLevel>(LEVEL_IDS, 'roundjudge');
+  const adaptive = useAdaptive<RoundJudgeLevel>(LEVEL_IDS);
 
   if (mode === 'setup') {
     return (
