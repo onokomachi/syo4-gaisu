@@ -11,8 +11,8 @@ import { AdaptiveBar } from '../shared/AdaptiveBar';
 import { AnswerEntry } from '../shared/AnswerEntry';
 import { HintBox, ResultPanel, SetupScreen, LevelCard } from '../ui/primitives';
 import {
-  ROUNDJUDGE_LEVELS, RoundJudgeLevel, RoundJudgeValueProblem, RoundJudgeMethodProblem, RoundJudgeBudgetProblem,
-  generateRoundJudgeValue, generateRoundJudgeMethod, generateRoundJudgeBudget,
+  ROUNDJUDGE_LEVELS, RoundJudgeLevel, RoundJudgeValueProblem, RoundJudgeMethodProblem, RoundJudgeBudgetProblem, RoundJudgeFloorProblem,
+  generateRoundJudgeValue, generateRoundJudgeMethod, generateRoundJudgeBudget, generateRoundJudgeFloor,
 } from '../../lib/problems';
 import { useProgressStore } from '../../store/progressStore';
 import { useAdaptive } from '../../lib/useAdaptive';
@@ -28,7 +28,7 @@ export const RoundJudgeModule: React.FC<Props> = ({ onExit }) => {
   const [round, setRound] = useState(0);
   const getMasteryStreak = useProgressStore((s) => s.getMasteryStreak);
   const getTodaySkillCount = useProgressStore((s) => s.getTodaySkillCount);
-  const adaptive = useAdaptive<RoundJudgeLevel>(LEVEL_IDS, 'roundjudge');
+  const adaptive = useAdaptive<RoundJudgeLevel>(LEVEL_IDS);
 
   if (mode === 'setup') {
     return (
@@ -82,13 +82,15 @@ export const RoundJudgeRound: React.FC<{
   valueProblem?: RoundJudgeValueProblem;
   methodProblem?: RoundJudgeMethodProblem;
   budgetProblem?: RoundJudgeBudgetProblem;
+  floorProblem?: RoundJudgeFloorProblem;
   onNext: () => void;
   onResult?: (perfect: boolean) => void;
   nextLabel?: string;
-}> = ({ level, valueProblem, methodProblem, budgetProblem, onNext, onResult, nextLabel }) => {
+}> = ({ level, valueProblem, methodProblem, budgetProblem, floorProblem, onNext, onResult, nextLabel }) => {
   const [valueP] = useState<RoundJudgeValueProblem | null>(() => (level === 'roundjudge-value' ? valueProblem ?? generateRoundJudgeValue() : null));
   const [methodP] = useState<RoundJudgeMethodProblem | null>(() => (level === 'roundjudge-method' ? methodProblem ?? generateRoundJudgeMethod() : null));
   const [budgetP] = useState<RoundJudgeBudgetProblem | null>(() => (level === 'roundjudge-budget' ? budgetProblem ?? generateRoundJudgeBudget() : null));
+  const [floorP] = useState<RoundJudgeFloorProblem | null>(() => (level === 'roundjudge-floor' ? floorProblem ?? generateRoundJudgeFloor() : null));
   const [stage, setStage] = useState<'answer' | 'stage2' | 'done'>('answer');
   const [mistakes, setMistakes] = useState(0);
   const [hint, setHint] = useState<string | null>(null);
@@ -143,6 +145,12 @@ export const RoundJudgeRound: React.FC<{
     }
   };
 
+  const submitFloor = (v: string) => {
+    if (!floorP) return;
+    if (Number(v) === floorP.floorCount) finish(`${floorP.budget}円で ${floorP.itemName} ${floorP.floorCount}こ`);
+    else { playSoftTry(); setMistakes((m) => m + 1); setHint(floorP.hint); }
+  };
+
   return (
     <div className="h-full overflow-y-auto p-4 md:p-8">
       <div className="max-w-xl mx-auto space-y-5">
@@ -187,10 +195,24 @@ export const RoundJudgeRound: React.FC<{
           </div>
         )}
 
+        {floorP && (
+          <div className="bg-surface border border-line rounded-[28px] shadow-xl p-6 md:p-8 text-center">
+            <div className="text-5xl mb-2">{floorP.emoji}</div>
+            <p className="text-lg md:text-xl font-black text-content leading-relaxed">
+              1こ <span className="text-teal-600">{floorP.price}円</span>の {floorP.itemName}を、<span className="text-teal-600">{floorP.budget}円</span>で 買います。
+            </p>
+            <p className="text-muted font-bold mt-2">買いすぎないように、切り捨てで 見積もると 何こ買えるでしょう。</p>
+          </div>
+        )}
+
         {hint && <HintBox tone="wrong">{hint}</HintBox>}
 
         {stage === 'answer' && valueP && (
           <AnswerEntry onSubmit={submitValue} allowDecimal={false} accentText="text-teal-600" />
+        )}
+
+        {stage === 'answer' && floorP && (
+          <AnswerEntry onSubmit={submitFloor} allowDecimal={false} submitLabel="◯こ" accentText="text-teal-600" />
         )}
 
         {stage === 'answer' && methodP && (
@@ -249,7 +271,7 @@ export const RoundJudgeRound: React.FC<{
         {stage === 'done' && (
           <ResultPanel
             perfect={mistakes === 0}
-            detail={<span>{valueP?.explain ?? methodP?.why ?? budgetP?.explain2}</span>}
+            detail={<span>{valueP?.explain ?? methodP?.why ?? budgetP?.explain2 ?? floorP?.explain}</span>}
             onNext={onNext}
             nextLabel={nextLabel}
             accentClass="bg-teal-500 hover:bg-teal-600"

@@ -1,6 +1,6 @@
 /**
  * バッジ獲得率に応じて解放される「特別なデザイン（テーマ）」の定義。
- * 25% → 極光 / 50% → 桜吹雪 / 75% → インフェルノ / 100% → 天空神。
+ * 25% → 桜吹雪 / 50% → 戦争 / 75% → スピードワールド / 100% → 冥界神。
  * ノーマル（light）とマトリックス（dark）は最初から使える。
  */
 import { Theme } from '../store/settingsStore';
@@ -15,10 +15,10 @@ export interface ThemeUnlock {
 export const THEME_UNLOCK: Record<Theme, ThemeUnlock> = {
   light: {},
   dark: {},
-  aurora: { ratio: 0.25, label: 'バッジ 25%' },
-  sakura: { ratio: 0.5, label: 'バッジ 50%' },
-  inferno: { ratio: 0.75, label: 'バッジ 75%' },
-  tenkuu: { ratio: 1.0, label: 'バッジ 100%' },
+  sakura: { ratio: 0.25, label: 'バッジ 25%' },
+  war: { ratio: 0.5, label: 'バッジ 50%' },
+  speedworld: { ratio: 0.75, label: 'バッジ 75%' },
+  netherworld: { ratio: 1.0, label: 'バッジ 100%' },
 };
 
 /** そのテーマが現在の獲得率で解放されているか。 */

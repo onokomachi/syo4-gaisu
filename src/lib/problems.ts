@@ -26,7 +26,7 @@ function roundToLeadingDigits(n: number, k: number): number {
 }
 
 const PLACE_LABEL: Record<number, string> = {
-  10: '十の位', 100: '百の位', 1000: '千の位', 10000: '一万の位', 100000: '十万の位',
+  1: '一の位', 10: '十の位', 100: '百の位', 1000: '千の位', 10000: '一万の位', 100000: '十万の位',
 };
 
 /* =====================================================================
@@ -117,14 +117,46 @@ export function generateMeaningScene(): MeaningSceneProblem {
  * 四捨五入で がい数に
  * =================================================================== */
 
-export type RoundLevel = 'round-place' | 'round-digit2' | 'round-digit1' | 'round-choose';
+export type RoundLevel = 'round-which-place' | 'round-place' | 'round-digit2' | 'round-digit1' | 'round-choose';
 
 export const ROUND_LEVELS: { id: RoundLevel; label: string; desc: string }[] = [
+  { id: 'round-which-place', label: 'どの位を 四捨五入する？', desc: '見る位を まちがえないように たしかめよう' },
   { id: 'round-place', label: '指定の位までの がい数', desc: '千の位、一万の位など、ゆびさされた位まで' },
   { id: 'round-digit2', label: '上から2けたの がい数', desc: '大きい数を 上から2つの位で 表そう' },
   { id: 'round-digit1', label: '上から1けたの がい数', desc: '見積もりの 基本ワザ' },
   { id: 'round-choose', label: '2つの条件に 合う数は？', desc: '上から1けた・2けた 両方の 条件から えらぶ' },
 ];
+
+export interface RoundWhichPlaceProblem {
+  n: number;
+  targetLabel: string;
+  choices: string[];
+  answerIndex: number;
+  hint: string;
+  explain: string;
+}
+
+/** 「◯◯の位までの がい数にするには、どの位を 四捨五入すればよいか」を問う（答えの数値ではなく、見る位そのものを問う）。 */
+export function generateRoundWhichPlace(): RoundWhichPlaceProblem {
+  const digitsCount = rnd(4, 6);
+  const n = rnd(Math.pow(10, digitsCount - 1), Math.pow(10, digitsCount) - 1);
+  const candidateUnits = [1000, 10000, 100000].filter((u) => u < Math.pow(10, digitsCount));
+  const targetUnit = pick(candidateUnits);
+  const targetLabel = PLACE_LABEL[targetUnit];
+  const belowUnit = targetUnit / 10;
+  const twoBelowUnit = belowUnit / 10;
+  const correctLabel = PLACE_LABEL[belowUnit];
+  const twoBelowLabel = PLACE_LABEL[twoBelowUnit];
+  // 正解（一つ下の位）／目標の位そのもの（見る位を まちがえる典型ミス）／さらに一つ下の位、の3択
+  const choices = [correctLabel, targetLabel, twoBelowLabel].sort(() => Math.random() - 0.5);
+  return {
+    n, targetLabel,
+    choices,
+    answerIndex: choices.indexOf(correctLabel),
+    hint: `${targetLabel}までの がい数にするには、その すぐ 一つ下の位を 見るよ。`,
+    explain: `${n}を ${targetLabel}までの がい数にするには、${correctLabel}の 数字を 四捨五入するよ（${targetLabel}自身では ないよ）。`,
+  };
+}
 
 export interface RoundPlaceProblem {
   n: number;
@@ -233,6 +265,8 @@ export interface RangeProblem {
   answerIndex: number;
   hint: string;
   explain: string;
+  /** 選択肢を まちがえたときに 出す説明（「以上・以下・未満」の意味そのものを確認させる）。 */
+  expressWrongHint: string;
 }
 
 export function generateRange(level: RangeLevel): RangeProblem {
@@ -241,19 +275,31 @@ export function generateRange(level: RangeLevel): RangeProblem {
   const min = target - unit / 2;
   const max = target + unit / 2 - 1;
   const placeLabel = PLACE_LABEL[unit] ?? `${unit}の位`;
-  const correct = `${min}以上${max + 1}未満`;
-  const distractors = [
-    `${min}以下${max + 1}未満`,
-    `${min}以上${max}以下`,
-    `${min + 1}以上${max + 1}未満`,
+
+  // 正解の表し方は「未満」「以下」のどちらも使う（整数の はんいとしては 同じ）。
+  // どちらの表し方でも 正解になりうることを 学習させる。
+  const useLessThanForm = Math.random() < 0.5;
+  const correct = useLessThanForm ? `${min}以上${max + 1}未満` : `${min}以上${max}以下`;
+  const equivalentForm = useLessThanForm ? `${min}以上${max}以下` : `${min}以上${max + 1}未満`;
+
+  // distractor は すべて 正解とは ちがう整数の集合になるものだけを使う
+  // （「min以上max以下」は「min以上(max+1)未満」と 同じ集合になってしまうため、distractor には使わない）。
+  const distractorPool = [
+    `${min}以下${max + 1}未満`,     // 下限の ことばが 逆（以上→以下）
+    `${min}以上${max + 1}以下`,     // 上限を 1つ 多く ふくめてしまう
+    `${min + 1}以上${max + 1}未満`, // 下限を 1つ ずらしてしまう
+    `${min}以上${max}未満`,         // 上限を 1つ 少なく ふくめてしまう（maxが 入らない）
   ];
-  const options = [correct, distractors[0], pick(distractors.slice(1))].sort(() => Math.random() - 0.5);
+  const d1 = pick(distractorPool);
+  const d2 = pick(distractorPool.filter((d) => d !== d1));
+  const options = [correct, d1, d2].sort(() => Math.random() - 0.5);
   return {
     target, unit, placeLabel, min, max,
     choices: options,
     answerIndex: options.indexOf(correct),
     hint: `${placeLabel}までの がい数にして ${target}に なる数は、${target}より ${unit / 2}小さい数から、${target}より ${unit / 2}大きい数の 一つ手前までだよ。`,
-    explain: `いちばん小さい整数は ${min}、いちばん大きい整数は ${max}。はんいは「${correct}」と 表すよ（${max + 1}は ふくまれない よ）。`,
+    explain: `いちばん小さい整数は ${min}、いちばん大きい整数は ${max}。はんいは「${correct}」と 表すよ。「${equivalentForm}」と表しても 同じ はんいだよ。`,
+    expressWrongHint: '「以上」「以下」は その数を ふくみ、「未満」は その数を ふくまない、という意味だよ。それぞれの数が 正しく はんいに 入っているか、たしかめよう。',
   };
 }
 
@@ -403,12 +449,13 @@ export function generateProdQuot(level: ProdQuotLevel): ProdQuotProblem {
  * 切り上げ・切り捨てで 考えよう
  * =================================================================== */
 
-export type RoundJudgeLevel = 'roundjudge-value' | 'roundjudge-method' | 'roundjudge-budget';
+export type RoundJudgeLevel = 'roundjudge-value' | 'roundjudge-method' | 'roundjudge-budget' | 'roundjudge-floor';
 
 export const ROUNDJUDGE_LEVELS: { id: RoundJudgeLevel; label: string; desc: string }[] = [
   { id: 'roundjudge-value', label: '切り上げ・切り捨ての れんしゅう', desc: '四捨五入と どうちがうか たしかめよう' },
   { id: 'roundjudge-method', label: 'どの見積もり方が いい？', desc: '場面に あわせて えらぼう' },
   { id: 'roundjudge-budget', label: '予算で 考えよう', desc: '切り上げて 見積もり、買えるか たしかめる' },
+  { id: 'roundjudge-floor', label: '切り捨てで 何こ買えるか', desc: '買いすぎないように 少なめに 見積もる' },
 ];
 
 export interface RoundJudgeValueProblem {
@@ -508,6 +555,48 @@ export function generateRoundJudgeBudget(): RoundJudgeBudgetProblem {
     : `じっさいの代金を たすと ${realSum}円。${budget}円を こえて しまうから、買えないね。`;
 
   return { items, budget, ceilSum, realSum, canBuy, methodChoices, methodAnswerIndex, explain1, hint2, explain2 };
+}
+
+interface FloorItem { name: string; emoji: string }
+const FLOOR_ITEMS: FloorItem[] = [
+  { name: 'ジュース', emoji: '🧃' }, { name: 'あめ', emoji: '🍬' }, { name: 'クッキー', emoji: '🍪' },
+  { name: 'えんぴつ', emoji: '✏️' }, { name: 'シール', emoji: '⭐' }, { name: '消しゴム', emoji: '🧽' },
+];
+
+export interface RoundJudgeFloorProblem {
+  itemName: string;
+  emoji: string;
+  price: number;
+  budget: number;
+  floorCount: number;
+  hint: string;
+  explain: string;
+}
+
+/** 切り捨てで「何こ買えるか」を求める、少なめ見積もりの完結した文章題。 */
+export function generateRoundJudgeFloor(): RoundJudgeFloorProblem {
+  const item = pick(FLOOR_ITEMS);
+  return retry<RoundJudgeFloorProblem>(
+    () => {
+      const price = rnd(11, 48) * 10;
+      const budget = pick([500, 800, 1000, 1500, 2000]);
+      const floorCount = Math.floor(budget / price);
+      return {
+        itemName: item.name, emoji: item.emoji, price, budget, floorCount,
+        hint: `${budget} ÷ ${price} を 計算して、あまりが 出たら 切り捨てよう（買いすぎないように 少なめに 見積もる）。`,
+        explain: `${budget} ÷ ${price} = ${Math.floor(budget / price)}あまり${budget % price}。あまった お金では もう1こ 買えないから、切り捨てて ${floorCount}こ 買えるよ。`,
+      };
+    },
+    (p) => p.floorCount >= 1 && p.budget % p.price !== 0
+  );
+}
+
+function retry<T>(gen: () => T, pred: (x: T) => boolean, max = 200): T {
+  for (let i = 0; i < max; i++) {
+    const x = gen();
+    if (pred(x)) return x;
+  }
+  return gen();
 }
 
 /* =====================================================================

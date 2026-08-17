@@ -19,10 +19,10 @@ import { ModuleId } from './store/progressStore';
 import { useApplySettings } from './lib/useApplySettings';
 import { useSettingsStore } from './store/settingsStore';
 import { MatrixRain } from './components/ui/MatrixRain';
-import { AuroraRain } from './components/ui/AuroraRain';
 import { SakuraRain } from './components/ui/SakuraRain';
-import { InfernoRain } from './components/ui/InfernoRain';
-import { TenkuuRain } from './components/ui/TenkuuRain';
+import { WarRain } from './components/ui/WarRain';
+import { SpeedWorldRain } from './components/ui/SpeedWorldRain';
+import { NetherworldRain } from './components/ui/NetherworldRain';
 
 type View = { kind: 'HUB' } | { kind: 'LOG' } | { kind: 'TEST' } | { kind: 'MODULE'; id: ModuleId };
 
@@ -58,10 +58,10 @@ export default function App() {
     <div className="w-full h-screen overflow-hidden select-none bg-bg">
       {/* テーマ別の動く背景（各コンポーネントが自分のテーマ以外では何も描画しない） */}
       <MatrixRain />
-      <AuroraRain />
       <SakuraRain />
-      <InfernoRain />
-      <TenkuuRain />
+      <WarRain />
+      <SpeedWorldRain />
+      <NetherworldRain />
 
       <div className="relative z-10 w-full h-full">
         <AnimatePresence mode="wait">

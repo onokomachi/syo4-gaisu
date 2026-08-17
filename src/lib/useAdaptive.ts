@@ -6,10 +6,12 @@
 import { useRef, useState } from 'react';
 import { useProgressStore } from '../store/progressStore';
 
-export function recommendStart(getMastery: (s: string) => number, prefix: string, levelIds: string[]): number {
+export function recommendStart(getMastery: (s: string) => number, levelIds: string[]): number {
   let start = 0;
   for (let i = 0; i < levelIds.length - 1; i++) {
-    if (getMastery(`${prefix}-${levelIds[i]}`) >= 0.7) start = i + 1;
+    // levelIds は 'meaning-man' のようにモジュール名を含む完全な skillId。
+    // recordResult / getMasteryStreak と同じキーでそのまま引く（prefix を重ねて連結しない）。
+    if (getMastery(levelIds[i]) >= 0.7) start = i + 1;
     else break;
   }
   return start;
@@ -24,9 +26,9 @@ export interface Adaptive<L extends string> {
   onResult: (perfect: boolean) => void;
 }
 
-export function useAdaptive<L extends string>(levelIds: L[], prefix: string): Adaptive<L> {
+export function useAdaptive<L extends string>(levelIds: L[]): Adaptive<L> {
   const getMastery = useProgressStore((s) => s.getMastery);
-  const [index, setIndex] = useState(() => recommendStart(getMastery, prefix, levelIds));
+  const [index, setIndex] = useState(() => recommendStart(getMastery, levelIds));
   const [leveledUp, setLeveledUp] = useState(false);
   const perfectRef = useRef(0);
   const missRef = useRef(0);

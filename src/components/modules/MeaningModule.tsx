@@ -28,7 +28,7 @@ export const MeaningModule: React.FC<Props> = ({ onExit }) => {
   const [round, setRound] = useState(0);
   const getMasteryStreak = useProgressStore((s) => s.getMasteryStreak);
   const getTodaySkillCount = useProgressStore((s) => s.getTodaySkillCount);
-  const adaptive = useAdaptive<MeaningLevel>(LEVEL_IDS, 'meaning');
+  const adaptive = useAdaptive<MeaningLevel>(LEVEL_IDS);
 
   if (mode === 'setup') {
     return (
@@ -79,9 +79,12 @@ export const MeaningModule: React.FC<Props> = ({ onExit }) => {
 
 const NumberLine: React.FC<{ n: number; lower: number; upper: number }> = ({ n, lower, upper }) => {
   const ratio = (n - lower) / (upper - lower);
+  const mid = (lower + upper) / 2;
   return (
     <div className="mt-4 mb-2 px-2">
       <div className="relative h-2 bg-surface-3 rounded-full">
+        {/* 四捨五入の境目（まん中）を示す目印。▼の数がこれより右か左かで、どちらの位に近いか判断できる。 */}
+        <div className="absolute top-1/2 -translate-y-1/2 left-1/2 w-0.5 h-4 -translate-x-1/2 border-l-2 border-dashed border-faint" />
         <div
           className="absolute -top-7 -translate-x-1/2 text-xs font-black text-amber-600 tabular-nums whitespace-nowrap"
           style={{ left: `${ratio * 100}%` }}
@@ -95,6 +98,7 @@ const NumberLine: React.FC<{ n: number; lower: number; upper: number }> = ({ n, 
       </div>
       <div className="flex justify-between mt-1 text-xs font-bold text-faint tabular-nums">
         <span>{lower}</span>
+        <span className="text-faint/70">まん中 {mid}</span>
         <span>{upper}</span>
       </div>
     </div>

@@ -61,7 +61,7 @@
   /* ▼ 特別解放テーマ（バッジ収集で解放）。いずれも「暗い背景 × ネオン」系。
      --neon(r,g,b)/--panel/--panel-strong は §共有オーバーライドで使う追加トークン。 */
 
-  /* 桜吹雪（さくらふぶき）= 夜桜：漆黒の夜空 × 舞い散る桜の花びら × ピンクのネオン。バッジ50%で解放 */
+  /* 桜吹雪（さくらふぶき）= 夜桜：漆黒の夜空 × 舞い散る桜の花びら × ピンクのネオン。バッジ25%で解放 */
   body[data-theme='sakura'] {
     --c-bg: #0d0416;
     --c-surface: #170a22;
@@ -79,58 +79,58 @@
     --panel-strong: rgba(120, 40, 85, 0.85);
   }
 
-  /* インフェルノ = 業火：黒曜石の闇 × 立ちのぼる火の粉 × 深紅の炎。バッジ75%で解放 */
-  body[data-theme='inferno'] {
-    --c-bg: #0a0100;
-    --c-surface: #180502;
-    --c-surface-2: #0c0200;
-    --c-surface-3: #240903;
-    --c-content: #ffb37a;
-    --c-muted: #e0713a;
-    --c-faint: #9c4a22;
-    --c-line: #86341a;
-    --c-brand: #ff5a1f;
-    --c-brand-strong: #ff9558;
-    --c-on-brand: #1c0500;
-    --neon: 255, 100, 30;
-    --panel: #1c0703;
-    --panel-strong: rgba(130, 40, 5, 0.85);
+  /* 戦争（せんそう）= ファンタジー戦記：黄昏の戦場 × はためく旗印 × 金色に燃える炎の空。バッジ50%で解放 */
+  body[data-theme='war'] {
+    --c-bg: #1a0a02;
+    --c-surface: #2a1206;
+    --c-surface-2: #170801;
+    --c-surface-3: #3a1a0a;
+    --c-content: #ffcf8a;
+    --c-muted: #e0a35c;
+    --c-faint: #a06f3a;
+    --c-line: #8a5220;
+    --c-brand: #ff8a2e;
+    --c-brand-strong: #ffb35e;
+    --c-on-brand: #2a0e00;
+    --neon: 255, 150, 60;
+    --panel: #1f0d03;
+    --panel-strong: rgba(120, 50, 10, 0.85);
   }
 
-  /* 天空神（てんくうしん）= 神々の空：黄昏の大空 × 金色の光条 × 流れる雲。バッジ100%で解放 */
-  body[data-theme='tenkuu'] {
-    --c-bg: #041022;
-    --c-surface: #0a1c34;
-    --c-surface-2: #030b1a;
-    --c-surface-3: #12294a;
-    --c-content: #ffe9a8;
-    --c-muted: #a8cbe8;
-    --c-faint: #6d8fb5;
-    --c-line: #3c608c;
-    --c-brand: #ffd24a;
-    --c-brand-strong: #ffe58f;
-    --c-on-brand: #221a00;
-    --neon: 255, 215, 120;
-    --panel: #081a30;
-    --panel-strong: rgba(60, 100, 160, 0.82);
+  /* スピードワールド = 近未来サイバー：漆黒のハイウェイ × 流れるネオングリッド × 光速のライトストリーク。バッジ75%で解放 */
+  body[data-theme='speedworld'] {
+    --c-bg: #030812;
+    --c-surface: #071224;
+    --c-surface-2: #020610;
+    --c-surface-3: #0d1f3a;
+    --c-content: #9dfaff;
+    --c-muted: #6fd8f0;
+    --c-faint: #3f7f96;
+    --c-line: #1f6a82;
+    --c-brand: #00e5ff;
+    --c-brand-strong: #7bffe8;
+    --c-on-brand: #001318;
+    --neon: 0, 220, 255;
+    --panel: #071a30;
+    --panel-strong: rgba(10, 70, 110, 0.85);
   }
 
-  /* 極光（きょっこう）= オーロラ：北極の夜空 × 緑＋紫の光のカーテン。バッジ75%で解放 */
-  body[data-theme='aurora'] {
-    --c-bg: #020309;
-    --c-surface: #060c16;
-    --c-surface-2: #02040a;
-    --c-surface-3: #0c1426;
-    --c-content: #b6ffc8;
-    --c-muted: #79e0c4;
-    --c-faint: #569aa0;
-    --c-line: #2f7a72;
-    --c-brand: #c56bff;
-    --c-brand-strong: #e3b0ff;
-    --c-on-brand: #0a0420;
-    --neon: 120, 255, 170;
-    --panel: #070e1a;
-    --panel-strong: rgba(70, 35, 110, 0.82);
+  /* 冥界神（めいかいしん）= 闇の玉座：紫紅の深淵 × 回転する魔法陣 × 紫電の稲妻。バッジ100%で解放 */
+  body[data-theme='netherworld'] {
+    --c-bg: #0a0210;
+    --c-surface: #170826;
+    --c-surface-2: #08010f;
+    --c-surface-3: #24103a;
+    --c-content: #e8b8ff;
+    --c-muted: #b57de0;
+    --c-faint: #7a4fa0;
+    --c-line: #5c2f85;
+    --c-brand: #b833ff;
+    --c-brand-strong: #d97bff;
+    --c-on-brand: #1a0026;
+    --neon: 190, 60, 255;
+    --panel: #150726;
+    --panel-strong: rgba(90, 20, 130, 0.85);
   }
 
 
@@ -153,33 +153,33 @@
 
 
   /* スマホの FOUC・合成誤差対策: 暗背景テーマは背景色を確実に固定する */
-  body[data-theme='aurora'] { background-color: #020309 !important; }
   body[data-theme='sakura'] { background-color: #0d0416 !important; }
-  body[data-theme='inferno'] { background-color: #0a0100 !important; }
-  body[data-theme='tenkuu'] { background-color: #041022 !important; }
+  body[data-theme='war'] { background-color: #1a0a02 !important; }
+  body[data-theme='speedworld'] { background-color: #030812 !important; }
+  body[data-theme='netherworld'] { background-color: #0a0210 !important; }
 
-  /* 極光：やわらかな緑白の発光（オーロラ） */
-  body[data-theme='aurora'] {
-    font-family: "BIZ UDPGothic", "Inter", ui-sans-serif, sans-serif;
-    text-shadow: 0 0 5px rgba(120, 255, 170, 0.4), 0 0 12px rgba(150, 120, 255, 0.25);
-    letter-spacing: 0.03em;
-  }
   /* 桜吹雪：ほんのり桜色の発光 */
   body[data-theme='sakura'] {
     font-family: "BIZ UDPGothic", "Inter", ui-sans-serif, sans-serif;
     text-shadow: 0 0 5px rgba(255, 140, 185, 0.35), 0 0 12px rgba(255, 140, 185, 0.18);
     letter-spacing: 0.03em;
   }
-  /* インフェルノ：炎のゆらめく発光 */
-  body[data-theme='inferno'] {
+  /* 戦争：燃える戦場の金色の発光 */
+  body[data-theme='war'] {
     font-family: "BIZ UDPGothic", "Inter", ui-sans-serif, sans-serif;
-    text-shadow: 0 0 5px rgba(255, 100, 30, 0.45), 0 0 14px rgba(255, 60, 0, 0.22);
+    text-shadow: 0 0 5px rgba(255, 150, 60, 0.45), 0 0 14px rgba(255, 90, 0, 0.22);
     letter-spacing: 0.03em;
   }
-  /* 天空神：神々しい金色の光 */
-  body[data-theme='tenkuu'] {
+  /* スピードワールド：シアンのサイバー発光（等幅フォントで近未来感） */
+  body[data-theme='speedworld'] {
+    font-family: "Share Tech Mono", "JetBrains Mono", ui-monospace, monospace;
+    text-shadow: 0 0 5px rgba(0, 220, 255, 0.5), 0 0 14px rgba(0, 220, 255, 0.25);
+    letter-spacing: 0.04em;
+  }
+  /* 冥界神：紫紅の妖しい発光 */
+  body[data-theme='netherworld'] {
     font-family: "BIZ UDPGothic", "Inter", ui-sans-serif, sans-serif;
-    text-shadow: 0 0 5px rgba(255, 215, 120, 0.45), 0 0 12px rgba(160, 200, 255, 0.22);
+    text-shadow: 0 0 5px rgba(190, 60, 255, 0.5), 0 0 14px rgba(140, 20, 200, 0.3);
     letter-spacing: 0.03em;
   }
 }
@@ -287,15 +287,15 @@ body[data-theme='dark'] .border {
    背景は「純黒 ＋ 緑のデジタルレイン」だけにして、余計な縞を一切重ねない。 */
 
 /* =====================================================================
- * 特別解放テーマ（極光 / 桜吹雪 / インフェルノ / 天空神）の共通オーバーライド。
- * 3テーマとも「暗背景 × ネオン」系なので、ハードコードされた明るい固定色を
+ * 特別解放テーマ（桜吹雪 / 戦争 / スピードワールド / 冥界神）の共通オーバーライド。
+ * 4テーマとも「暗背景 × ネオン」系なので、ハードコードされた明るい固定色を
  * テーマ別トークン（--neon / --panel / --panel-strong / --c-content）で
  * まとめて変換する。:is() で3テーマを1つのセレクタにまとめている。
  * （@layer 外＝Tailwind ユーティリティに勝つ。!important で確実に上書き）
  * ===================================================================== */
 
 /* 明るい淡色背景（-50/-100/-200・白・スレート）→ 暗いパネル */
-body:is([data-theme='aurora'], [data-theme='sakura'], [data-theme='inferno'], [data-theme='tenkuu']) :is(
+body:is([data-theme='sakura'], [data-theme='war'], [data-theme='speedworld'], [data-theme='netherworld']) :is(
   .bg-white,
   .bg-blue-50, .bg-blue-100, .bg-sky-50, .bg-indigo-50,
   .bg-emerald-50, .bg-emerald-100, .bg-green-50, .bg-green-100,
@@ -308,7 +308,7 @@ body:is([data-theme='aurora'], [data-theme='sakura'], [data-theme='inferno'], [d
 }
 
 /* 濃い原色背景（ボタン・バナー）→ ネオン枠＋発光のパネル */
-body:is([data-theme='aurora'], [data-theme='sakura'], [data-theme='inferno'], [data-theme='tenkuu']) :is(
+body:is([data-theme='sakura'], [data-theme='war'], [data-theme='speedworld'], [data-theme='netherworld']) :is(
   .bg-blue-500, .bg-blue-600, .bg-blue-700, .bg-indigo-500, .bg-indigo-600,
   .bg-emerald-500, .bg-emerald-600, .bg-green-500, .bg-green-600,
   .bg-violet-500, .bg-violet-600, .bg-amber-500, .bg-amber-600,
@@ -320,7 +320,7 @@ body:is([data-theme='aurora'], [data-theme='sakura'], [data-theme='inferno'], [d
 }
 
 /* グラデーション背景 → ネオンのグラデに差し替え */
-body:is([data-theme='aurora'], [data-theme='sakura'], [data-theme='inferno'], [data-theme='tenkuu']) :is(
+body:is([data-theme='sakura'], [data-theme='war'], [data-theme='speedworld'], [data-theme='netherworld']) :is(
   .bg-gradient-to-r, .bg-gradient-to-br, .bg-gradient-to-b, .bg-gradient-to-bl) {
   background-image: linear-gradient(135deg, var(--panel-strong), rgba(var(--neon), 0.06)) !important;
   border: 1px solid rgba(var(--neon), 0.55);
@@ -328,12 +328,12 @@ body:is([data-theme='aurora'], [data-theme='sakura'], [data-theme='inferno'], [d
 }
 
 /* 半透明の白タイル（bg-white/20 等）→ ネオンタイル */
-body:is([data-theme='aurora'], [data-theme='sakura'], [data-theme='inferno'], [data-theme='tenkuu']) [class*="bg-white/"] {
+body:is([data-theme='sakura'], [data-theme='war'], [data-theme='speedworld'], [data-theme='netherworld']) [class*="bg-white/"] {
   background-color: rgba(var(--neon), 0.14) !important;
 }
 
 /* 原色テキスト → テーマのコンテンツ色 */
-body:is([data-theme='aurora'], [data-theme='sakura'], [data-theme='inferno'], [data-theme='tenkuu']) :is(
+body:is([data-theme='sakura'], [data-theme='war'], [data-theme='speedworld'], [data-theme='netherworld']) :is(
   .text-blue-500, .text-blue-600, .text-blue-700, .text-blue-800,
   .text-sky-600, .text-indigo-600, .text-emerald-600, .text-emerald-700,
   .text-green-600, .text-green-700, .text-teal-600, .text-cyan-600,
@@ -346,7 +346,7 @@ body:is([data-theme='aurora'], [data-theme='sakura'], [data-theme='inferno'], [d
 }
 
 /* 原色ボーダー → ネオン */
-body:is([data-theme='aurora'], [data-theme='sakura'], [data-theme='inferno'], [data-theme='tenkuu']) :is(
+body:is([data-theme='sakura'], [data-theme='war'], [data-theme='speedworld'], [data-theme='netherworld']) :is(
   .border-blue-100, .border-blue-200, .border-blue-300,
   .border-amber-100, .border-amber-200, .border-amber-300,
   .border-emerald-200, .border-emerald-300, .border-violet-200, .border-rose-200,
@@ -355,13 +355,13 @@ body:is([data-theme='aurora'], [data-theme='sakura'], [data-theme='inferno'], [d
 }
 
 /* リング色 → ネオン */
-body:is([data-theme='aurora'], [data-theme='sakura'], [data-theme='inferno'], [data-theme='tenkuu']) :is(
+body:is([data-theme='sakura'], [data-theme='war'], [data-theme='speedworld'], [data-theme='netherworld']) :is(
   .ring-blue-200, .ring-amber-200, .ring-emerald-200, .ring-violet-200, .ring-rose-200) {
   --tw-ring-color: rgba(var(--neon), 0.4) !important;
 }
 
 /* 枠線つきカードに薄いネオングロー */
-body:is([data-theme='aurora'], [data-theme='sakura'], [data-theme='inferno'], [data-theme='tenkuu']) :is(.border-line, .border) {
+body:is([data-theme='sakura'], [data-theme='war'], [data-theme='speedworld'], [data-theme='netherworld']) :is(.border-line, .border) {
   box-shadow: 0 0 14px rgba(var(--neon), 0.1), inset 0 0 16px rgba(var(--neon), 0.04);
 }
 
