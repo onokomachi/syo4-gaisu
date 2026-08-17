@@ -11,8 +11,8 @@ import { AdaptiveBar } from '../shared/AdaptiveBar';
 import { AnswerEntry } from '../shared/AnswerEntry';
 import { HintBox, ResultPanel, SetupScreen, LevelCard } from '../ui/primitives';
 import {
-  ROUND_LEVELS, RoundLevel, RoundPlaceProblem, RoundDigitProblem, RoundChooseProblem,
-  generateRoundPlace, generateRoundDigit, generateRoundChoose,
+  ROUND_LEVELS, RoundLevel, RoundPlaceProblem, RoundDigitProblem, RoundChooseProblem, RoundWhichPlaceProblem,
+  generateRoundPlace, generateRoundDigit, generateRoundChoose, generateRoundWhichPlace,
 } from '../../lib/problems';
 import { useProgressStore } from '../../store/progressStore';
 import { useAdaptive } from '../../lib/useAdaptive';
@@ -79,13 +79,15 @@ export const RoundModule: React.FC<Props> = ({ onExit }) => {
 
 export const RoundRound: React.FC<{
   level: RoundLevel;
+  whichPlaceProblem?: RoundWhichPlaceProblem;
   placeProblem?: RoundPlaceProblem;
   digitProblem?: RoundDigitProblem;
   chooseProblem?: RoundChooseProblem;
   onNext: () => void;
   onResult?: (perfect: boolean) => void;
   nextLabel?: string;
-}> = ({ level, placeProblem, digitProblem, chooseProblem, onNext, onResult, nextLabel }) => {
+}> = ({ level, whichPlaceProblem, placeProblem, digitProblem, chooseProblem, onNext, onResult, nextLabel }) => {
+  const [whichPlaceP] = useState<RoundWhichPlaceProblem | null>(() => (level === 'round-which-place' ? whichPlaceProblem ?? generateRoundWhichPlace() : null));
   const [placeP] = useState<RoundPlaceProblem | null>(() => (level === 'round-place' ? placeProblem ?? generateRoundPlace() : null));
   const [digitP] = useState<RoundDigitProblem | null>(() =>
     level === 'round-digit2' ? digitProblem ?? generateRoundDigit(2) : level === 'round-digit1' ? digitProblem ?? generateRoundDigit(1) : null
@@ -123,10 +125,22 @@ export const RoundRound: React.FC<{
     else { playSoftTry(); setMistakes((m) => m + 1); setPickedWrong(i); setHint(chooseP.hint); }
   };
 
+  const chooseWhichPlace = (i: number) => {
+    if (!whichPlaceP) return;
+    if (i === whichPlaceP.answerIndex) finish(`${whichPlaceP.n} → ${whichPlaceP.choices[i]}を 四捨五入`);
+    else { playSoftTry(); setMistakes((m) => m + 1); setPickedWrong(i); setHint(whichPlaceP.hint); }
+  };
+
   return (
     <div className="h-full overflow-y-auto p-4 md:p-8">
       <div className="max-w-xl mx-auto space-y-5">
         <div className="bg-surface border border-line rounded-[28px] shadow-xl p-6 md:p-8 text-center">
+          {whichPlaceP && (
+            <>
+              <div className="text-5xl md:text-6xl font-black text-content tabular-nums tracking-wider">{whichPlaceP.n}</div>
+              <p className="text-muted font-bold mt-3">四捨五入して <span className="text-blue-600">{whichPlaceP.targetLabel}</span>までの がい数に します。どの位の 数字を 四捨五入すれば よいでしょう。</p>
+            </>
+          )}
           {placeP && (
             <>
               <div className="text-5xl md:text-6xl font-black text-content tabular-nums tracking-wider">{placeP.n}</div>
@@ -168,10 +182,26 @@ export const RoundRound: React.FC<{
           </div>
         )}
 
+        {stage === 'answer' && whichPlaceP && (
+          <div className="grid grid-cols-1 gap-3">
+            {whichPlaceP.choices.map((c, i) => (
+              <button
+                key={i}
+                onClick={() => chooseWhichPlace(i)}
+                className={`p-5 rounded-2xl border-2 text-2xl font-black transition-all active:scale-[0.98] ${
+                  pickedWrong === i ? 'bg-amber-50 border-amber-300 text-amber-500' : 'bg-surface border-line text-content hover:border-blue-400'
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        )}
+
         {stage === 'done' && (
           <ResultPanel
             perfect={mistakes === 0}
-            detail={<span>{placeP?.explain ?? digitP?.explain ?? chooseP?.explain}</span>}
+            detail={<span>{whichPlaceP?.explain ?? placeP?.explain ?? digitP?.explain ?? chooseP?.explain}</span>}
             onNext={onNext}
             nextLabel={nextLabel}
             accentClass="bg-blue-500 hover:bg-blue-600"

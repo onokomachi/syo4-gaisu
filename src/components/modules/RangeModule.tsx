@@ -127,7 +127,7 @@ export const RangeRound: React.FC<{
       playSoftTry();
       setMistakes((m) => m + 1);
       setPickedWrong(i);
-      setHint(`「未満」は その数を ふくまない、という意味。境界の数（${problem.max + 1}）は はんいに 入らないよ。`);
+      setHint(problem.expressWrongHint);
     }
   };
 
