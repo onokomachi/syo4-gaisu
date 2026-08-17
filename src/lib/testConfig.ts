@@ -33,6 +33,8 @@ export interface TestStep {
   title: string;
   section: Section;
   points: number;
+  /** モジュールが recordResult に記録するのと同じ skillId（ボス戦の苦手スキル重みづけに使う） */
+  skillId: string;
   gen: () => TestProblem;
 }
 
@@ -57,40 +59,40 @@ const roundjudgeBudget = (): TestProblem => ({ kind: 'roundjudge-budget', p: gen
 export const TEST_STEPS: TestStep[] = [
   /* ===== 表・知識技能（計100点） ===== */
   // 大問1: がい数の意味がわかる（約何万人）
-  { daimon: 1, sub: '①', title: 'がい数の いみ（約何万）', section: '表', points: 5, gen: () => meaningNum('meaning-man') },
-  { daimon: 1, sub: '②', title: 'がい数の いみ（約何万）', section: '表', points: 5, gen: () => meaningNum('meaning-man') },
+  { daimon: 1, sub: '①', title: 'がい数の いみ（約何万）', section: '表', points: 5, skillId: 'meaning-man', gen: () => meaningNum('meaning-man') },
+  { daimon: 1, sub: '②', title: 'がい数の いみ（約何万）', section: '表', points: 5, skillId: 'meaning-man', gen: () => meaningNum('meaning-man') },
 
   // 大問2: 四捨五入して指定の位までのがい数に（3問）
-  { daimon: 2, sub: '①', title: '四捨五入（千の位までの がい数）', section: '表', points: 5, gen: () => roundPlace((p) => p.unit === 1000) },
-  { daimon: 2, sub: '②', title: '四捨五入（一万の位までの がい数）', section: '表', points: 5, gen: () => roundPlace((p) => p.unit === 10000) },
-  { daimon: 2, sub: '③', title: '四捨五入（一万の位までの がい数・くり上がりあり）', section: '表', points: 5, gen: () => roundPlace((p) => p.unit === 10000 && String(p.n).length >= 6) },
+  { daimon: 2, sub: '①', title: '四捨五入（千の位までの がい数）', section: '表', points: 5, skillId: 'round-place', gen: () => roundPlace((p) => p.unit === 1000) },
+  { daimon: 2, sub: '②', title: '四捨五入（一万の位までの がい数）', section: '表', points: 5, skillId: 'round-place', gen: () => roundPlace((p) => p.unit === 10000) },
+  { daimon: 2, sub: '③', title: '四捨五入（一万の位までの がい数・くり上がりあり）', section: '表', points: 5, skillId: 'round-place', gen: () => roundPlace((p) => p.unit === 10000 && String(p.n).length >= 6) },
 
   // 大問3: 四捨五入して上から2けたのがい数に（2問）
-  { daimon: 3, sub: '①', title: '上から2けたの がい数', section: '表', points: 5, gen: () => roundDigit(2) },
-  { daimon: 3, sub: '②', title: '上から2けたの がい数', section: '表', points: 5, gen: () => roundDigit(2) },
+  { daimon: 3, sub: '①', title: '上から2けたの がい数', section: '表', points: 5, skillId: 'round-digit2', gen: () => roundDigit(2) },
+  { daimon: 3, sub: '②', title: '上から2けたの がい数', section: '表', points: 5, skillId: 'round-digit2', gen: () => roundDigit(2) },
 
   // 大問4: がい数のもとの数の はんい（いちばん小さい数・大きい数・以上未満）
-  { daimon: 4, title: 'もとの数の はんい（以上・未満）', section: '表', points: 15, gen: () => range('range-hundreds') },
+  { daimon: 4, title: 'もとの数の はんい（以上・未満）', section: '表', points: 15, skillId: 'range-hundreds', gen: () => range('range-hundreds') },
 
   // 大問5: 和や差の見積もり（3問）
-  { daimon: 5, sub: '①', title: 'たし算の 見積もり', section: '表', points: 10, gen: () => sumdiff('sumdiff-add') },
-  { daimon: 5, sub: '②', title: 'ひき算の 見積もり', section: '表', points: 10, gen: () => sumdiff('sumdiff-sub') },
-  { daimon: 5, sub: '③', title: '3つの数の 見積もり', section: '表', points: 10, gen: () => sumdiff('sumdiff-triple') },
+  { daimon: 5, sub: '①', title: 'たし算の 見積もり', section: '表', points: 10, skillId: 'sumdiff-add', gen: () => sumdiff('sumdiff-add') },
+  { daimon: 5, sub: '②', title: 'ひき算の 見積もり', section: '表', points: 10, skillId: 'sumdiff-sub', gen: () => sumdiff('sumdiff-sub') },
+  { daimon: 5, sub: '③', title: '3つの数の 見積もり', section: '表', points: 10, skillId: 'sumdiff-triple', gen: () => sumdiff('sumdiff-triple') },
 
   // 大問6: 積や商の見積もり（2問）
-  { daimon: 6, sub: '①', title: 'かけ算の 見積もり', section: '表', points: 10, gen: () => prodquot('prodquot-mul') },
-  { daimon: 6, sub: '②', title: 'わり算の 見積もり', section: '表', points: 10, gen: () => prodquot('prodquot-div') },
+  { daimon: 6, sub: '①', title: 'かけ算の 見積もり', section: '表', points: 10, skillId: 'prodquot-mul', gen: () => prodquot('prodquot-mul') },
+  { daimon: 6, sub: '②', title: 'わり算の 見積もり', section: '表', points: 10, skillId: 'prodquot-div', gen: () => prodquot('prodquot-div') },
 
   /* ===== 裏・思考判断表現（計50点） ===== */
   // 大問7: 2つの条件（上から1けた・2けた）に合う数を選ぶ
-  { daimon: 7, title: '条件に合う数を えらぶ', section: '裏', points: 10, gen: () => roundChoose() },
+  { daimon: 7, title: '条件に合う数を えらぶ', section: '裏', points: 10, skillId: 'round-choose', gen: () => roundChoose() },
   // 大問8: 積の見積もり文章題（入館料 × 人数）
-  { daimon: 8, title: '見積もりの文章題（代金）', section: '裏', points: 20, gen: () => prodquot('prodquot-word') },
+  { daimon: 8, title: '見積もりの文章題（代金）', section: '裏', points: 20, skillId: 'prodquot-word', gen: () => prodquot('prodquot-word') },
   // 大問9: 切り上げて見積もり、予算内で買えるか判断する
-  { daimon: 9, title: '切り上げの見積もりと 予算判定', section: '裏', points: 20, gen: () => roundjudgeBudget() },
+  { daimon: 9, title: '切り上げの見積もりと 予算判定', section: '裏', points: 20, skillId: 'roundjudge-budget', gen: () => roundjudgeBudget() },
 
   /* ===== いかそう算数（参考・点数なし） ===== */
-  { daimon: 10, title: 'いかそう算数（がい数を つかう場面）', section: '参考', points: 0, gen: () => ({ kind: 'meaning-scene', p: generateMeaningScene() }) },
+  { daimon: 10, title: 'いかそう算数（がい数を つかう場面）', section: '参考', points: 0, skillId: 'meaning-scene', gen: () => ({ kind: 'meaning-scene', p: generateMeaningScene() }) },
 ];
 
 /**
