@@ -14,7 +14,9 @@ import { ProdQuotModule } from './components/modules/ProdQuotModule';
 import { RoundJudgeModule } from './components/modules/RoundJudgeModule';
 import { ErrorHunterModule } from './components/modules/ErrorHunterModule';
 import { MockTestModule } from './components/modules/MockTestModule';
+import { BossBattleModule } from './components/modules/BossBattleModule';
 import { LogView } from './components/LogView';
+import { DebugUnlock } from './components/DebugUnlock';
 import { ModuleId } from './store/progressStore';
 import { useApplySettings } from './lib/useApplySettings';
 import { useSettingsStore } from './store/settingsStore';
@@ -24,7 +26,7 @@ import { WarRain } from './components/ui/WarRain';
 import { SpeedWorldRain } from './components/ui/SpeedWorldRain';
 import { NetherworldRain } from './components/ui/NetherworldRain';
 
-type View = { kind: 'HUB' } | { kind: 'LOG' } | { kind: 'TEST' } | { kind: 'MODULE'; id: ModuleId };
+type View = { kind: 'HUB' } | { kind: 'LOG' } | { kind: 'TEST' } | { kind: 'BOSS' } | { kind: 'MODULE'; id: ModuleId };
 
 export default function App() {
   const [view, setView] = useState<View>({ kind: 'HUB' });
@@ -67,13 +69,24 @@ export default function App() {
         <AnimatePresence mode="wait">
           {view.kind === 'HUB' && (
             <motion.div key="hub" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full h-full">
-              <Hub onSelectModule={(id) => setView({ kind: 'MODULE', id })} onOpenLog={() => setView({ kind: 'LOG' })} onStartTest={() => setView({ kind: 'TEST' })} />
+              <Hub
+                onSelectModule={(id) => setView({ kind: 'MODULE', id })}
+                onOpenLog={() => setView({ kind: 'LOG' })}
+                onStartTest={() => setView({ kind: 'TEST' })}
+                onStartBoss={() => setView({ kind: 'BOSS' })}
+              />
             </motion.div>
           )}
 
           {view.kind === 'TEST' && (
             <motion.div key="test" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="w-full h-full">
               <MockTestModule onExit={goHub} />
+            </motion.div>
+          )}
+
+          {view.kind === 'BOSS' && (
+            <motion.div key="boss" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="w-full h-full">
+              <BossBattleModule onExit={goHub} />
             </motion.div>
           )}
 
@@ -98,10 +111,8 @@ export default function App() {
         </div>
       )}
 
-      {/* 画面左下のクレジット表記（ごく小さく） */}
-      <div className="fixed bottom-1 left-2 z-50 pointer-events-none text-[10px] leading-none text-faint/60 select-none">
-        presented by onokomachi
-      </div>
+      {/* 画面左下のクレジット表記（ごく小さく。3回タップで隠しコマンド） */}
+      <DebugUnlock />
     </div>
   );
 }

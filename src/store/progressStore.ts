@@ -15,7 +15,8 @@ export type ModuleId =
   | 'prodquot'
   | 'roundjudge'
   | 'error-hunter'
-  | 'mock-test';
+  | 'mock-test'
+  | 'boss-battle';
 
 /** 本番テストの各設問の結果（学習のきろくで詳細表示するため） */
 export interface TestStepResult {
@@ -60,6 +61,7 @@ export interface SkillMastery {
 /** skillId のプレフィックスから所属モジュールを判定 */
 export function skillToModuleId(skillId: string): ModuleId | null {
   if (skillId === 'mock-test' || skillId.startsWith('mock-')) return 'mock-test';
+  if (skillId.startsWith('boss-')) return 'boss-battle';
   if (skillId.startsWith('meaning-')) return 'meaning';
   if (skillId.startsWith('round-')) return 'round';
   if (skillId.startsWith('range-')) return 'range';
@@ -87,6 +89,8 @@ interface ProgressState {
   testPerfectCounts: { omote: number; ura: number; total: number };
   // 習熟度MAX（あるスキルで5問連続ノーミス＝熟達バー満タン）を一度でも達成したモジュール。
   masteredModules: Partial<Record<ModuleId, boolean>>;
+  // 隠しコマンドで解放した「全バッジ獲得あつかい」フラグ（見た目の確認用。実際の記録は書き換えない）
+  debugAllBadges: boolean;
   recordResult: (rec: Omit<ResultRecord, 'id' | 'ts'>) => void;
   getMastery: (skillId: string) => number; // 0..1（試行なしは 0）
   getMasteryStreak: (skillId: string) => number; // 0..1（連続ノーミス/5。熟達バー表示用）
@@ -94,6 +98,7 @@ interface ProgressState {
   getTodayCount: () => number; // きょう 正解した数
   getTodaySkillCount: (skillId: string) => number; // きょう そのスキルを 正解した数
   setDailyGoal: (n: number) => void;
+  setDebugAllBadges: (v: boolean) => void;
   reset: () => void;
 }
 
@@ -112,6 +117,7 @@ export const useProgressStore = create<ProgressState>()(
       bestTestTotal: 0,
       testPerfectCounts: { omote: 0, ura: 0, total: 0 },
       masteredModules: {},
+      debugAllBadges: false,
 
       recordResult: (rec) => {
         set((state) => {
@@ -202,16 +208,26 @@ export const useProgressStore = create<ProgressState>()(
       },
 
       setDailyGoal: (n) => set({ dailyGoal: n }),
+      setDebugAllBadges: (v) => set({ debugAllBadges: v }),
 
       reset: () => set({
         logs: [], mastery: {}, currentStreak: 0, maxStreak: 0, totalCorrect: 0, moduleCounts: {},
         bestTestOmote: 0, bestTestUra: 0, bestTestTotal: 0, testPerfectCounts: { omote: 0, ura: 0, total: 0 }, masteredModules: {},
+        debugAllBadges: false,
       }),
     }),
     {
       name: 'gaisu_progress_v1',
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => getProgressStorage()),
+      // v1→v2: 開発者用デバッグ解放フラグを新設。旧データには存在しないため false で補う
+      migrate: (persisted) => {
+        const state = persisted as Partial<ProgressState> | undefined;
+        if (state && state.debugAllBadges == null) {
+          state.debugAllBadges = false;
+        }
+        return state as ProgressState;
+      },
     }
   )
 );
