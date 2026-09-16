@@ -4,6 +4,7 @@
  * 見ぬく力（正確な数と どちらが よいか）を段階的に養う。
  */
 import React, { useState } from 'react';
+import { useRoundRecorder } from 'learning-app-kit/react';
 import confetti from 'canvas-confetti';
 import { Wand2 } from 'lucide-react';
 import { AppShell } from '../shared/AppShell';
@@ -121,11 +122,14 @@ export const MeaningRound: React.FC<{
   const [hint, setHint] = useState<string | null>(null);
   const [pickedWrong, setPickedWrong] = useState<'gaisu' | 'exact' | null>(null);
   const recordResult = useProgressStore((s) => s.recordResult);
+  // できなかった問題も残す。まちがえた回数を数え、正解までたどりつかずに
+  // 離れたときも1件記録する（learning-app-kit/react）
+  const rec = useRoundRecorder({ moduleId: 'meaning', skillId: level, record: recordResult });
 
   const finish = (label: string) => {
     playClear();
     confetti({ particleCount: 110, spread: 65, origin: { y: 0.6 } });
-    recordResult({ moduleId: 'meaning', skillId: level, label, correct: mistakes === 0 });
+    rec.finish(label);
     onResult?.(mistakes === 0);
     setStage('done');
   };
@@ -136,7 +140,7 @@ export const MeaningRound: React.FC<{
       finish(`${numProblem.n} → 約${numProblem.answerDigit}${numProblem.kind === 'man' ? '万' : '千'}`);
     } else {
       playSoftTry();
-      setMistakes((m) => m + 1);
+      setMistakes((m) => m + 1); rec.mistake();
       setHint(numProblem.hint);
     }
   };
@@ -147,7 +151,7 @@ export const MeaningRound: React.FC<{
       finish(sceneProblem.text.slice(0, 18) + '…');
     } else {
       playSoftTry();
-      setMistakes((m) => m + 1);
+      setMistakes((m) => m + 1); rec.mistake();
       setPickedWrong(answer);
       setHint(sceneProblem.why);
     }
