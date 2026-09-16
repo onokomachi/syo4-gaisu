@@ -4,6 +4,7 @@
  * 最後に「以上・未満」で正しく表す文を選ぶ、3段階の流れで はんいの感覚を身につける。
  */
 import React, { useState } from 'react';
+import { useRoundRecorder } from 'learning-app-kit/react';
 import confetti from 'canvas-confetti';
 import { Wand2 } from 'lucide-react';
 import { AppShell } from '../shared/AppShell';
@@ -87,11 +88,14 @@ export const RangeRound: React.FC<{
   const [hint, setHint] = useState<string | null>(null);
   const [pickedWrong, setPickedWrong] = useState<number | null>(null);
   const recordResult = useProgressStore((s) => s.recordResult);
+  // できなかった問題も残す。まちがえた回数を数え、正解までたどりつかずに
+  // 離れたときも1件記録する（learning-app-kit/react）
+  const rec = useRoundRecorder({ moduleId: 'range', skillId: level, record: recordResult });
 
   const finish = () => {
     playClear();
     confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
-    recordResult({ moduleId: 'range', skillId: level, label: `→ ${problem.target}（${problem.placeLabel}まで）`, correct: mistakes === 0 });
+    rec.finish(`→ ${problem.target}（${problem.placeLabel}まで）`);
     onResult?.(mistakes === 0);
     setStage('done');
   };
@@ -103,7 +107,7 @@ export const RangeRound: React.FC<{
       setStage('max');
     } else {
       playSoftTry();
-      setMistakes((m) => m + 1);
+      setMistakes((m) => m + 1); rec.mistake();
       setHint(problem.hint);
     }
   };
@@ -115,7 +119,7 @@ export const RangeRound: React.FC<{
       setStage('express');
     } else {
       playSoftTry();
-      setMistakes((m) => m + 1);
+      setMistakes((m) => m + 1); rec.mistake();
       setHint(`いちばん大きい整数は、${problem.target}より ${problem.unit / 2}大きい数の 一つ手前だよ。`);
     }
   };
@@ -125,7 +129,7 @@ export const RangeRound: React.FC<{
       finish();
     } else {
       playSoftTry();
-      setMistakes((m) => m + 1);
+      setMistakes((m) => m + 1); rec.mistake();
       setPickedWrong(i);
       setHint(problem.expressWrongHint);
     }

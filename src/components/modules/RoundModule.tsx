@@ -4,6 +4,7 @@
  * そして2つの条件から もとの数を えらぶ「つまずきポイント」レベルまでを段階的に扱う。
  */
 import React, { useState } from 'react';
+import { useRoundRecorder } from 'learning-app-kit/react';
 import confetti from 'canvas-confetti';
 import { Wand2 } from 'lucide-react';
 import { AppShell } from '../shared/AppShell';
@@ -98,11 +99,14 @@ export const RoundRound: React.FC<{
   const [hint, setHint] = useState<string | null>(null);
   const [pickedWrong, setPickedWrong] = useState<number | null>(null);
   const recordResult = useProgressStore((s) => s.recordResult);
+  // できなかった問題も残す。まちがえた回数を数え、正解までたどりつかずに
+  // 離れたときも1件記録する（learning-app-kit/react）
+  const rec = useRoundRecorder({ moduleId: 'round', skillId: level, record: recordResult });
 
   const finish = (label: string) => {
     playClear();
     confetti({ particleCount: 110, spread: 65, origin: { y: 0.6 } });
-    recordResult({ moduleId: 'round', skillId: level, label, correct: mistakes === 0 });
+    rec.finish(label);
     onResult?.(mistakes === 0);
     setStage('done');
   };
@@ -110,25 +114,25 @@ export const RoundRound: React.FC<{
   const submitPlace = (v: string) => {
     if (!placeP) return;
     if (Number(v) === placeP.answer) finish(`${placeP.n} → ${placeP.placeLabel}まで`);
-    else { playSoftTry(); setMistakes((m) => m + 1); setHint(placeP.hint); }
+    else { playSoftTry(); setMistakes((m) => m + 1); rec.mistake(); setHint(placeP.hint); }
   };
 
   const submitDigit = (v: string) => {
     if (!digitP) return;
     if (Number(v) === digitP.answer) finish(`${digitP.n} → 上から${digitP.k}けた`);
-    else { playSoftTry(); setMistakes((m) => m + 1); setHint(digitP.hint); }
+    else { playSoftTry(); setMistakes((m) => m + 1); rec.mistake(); setHint(digitP.hint); }
   };
 
   const chooseAnswer = (i: number) => {
     if (!chooseP) return;
     if (i === chooseP.answerIndex) finish(chooseP.choices[i]);
-    else { playSoftTry(); setMistakes((m) => m + 1); setPickedWrong(i); setHint(chooseP.hint); }
+    else { playSoftTry(); setMistakes((m) => m + 1); rec.mistake(); setPickedWrong(i); setHint(chooseP.hint); }
   };
 
   const chooseWhichPlace = (i: number) => {
     if (!whichPlaceP) return;
     if (i === whichPlaceP.answerIndex) finish(`${whichPlaceP.n} → ${whichPlaceP.choices[i]}を 四捨五入`);
-    else { playSoftTry(); setMistakes((m) => m + 1); setPickedWrong(i); setHint(whichPlaceP.hint); }
+    else { playSoftTry(); setMistakes((m) => m + 1); rec.mistake(); setPickedWrong(i); setHint(whichPlaceP.hint); }
   };
 
   return (

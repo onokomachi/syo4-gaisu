@@ -5,6 +5,7 @@
  * 文章題レベルでは 実さいの代金を 見積もる 力まで つなげる。
  */
 import React, { useState } from 'react';
+import { useRoundRecorder } from 'learning-app-kit/react';
 import confetti from 'canvas-confetti';
 import { Wand2 } from 'lucide-react';
 import { AppShell } from '../shared/AppShell';
@@ -88,6 +89,9 @@ export const ProdQuotRound: React.FC<{
   const [mistakes, setMistakes] = useState(0);
   const [hint, setHint] = useState<string | null>(null);
   const recordResult = useProgressStore((s) => s.recordResult);
+  // できなかった問題も残す。まちがえた回数を数え、正解までたどりつかずに
+  // 離れたときも1件記録する（learning-app-kit/react）
+  const rec = useRoundRecorder({ moduleId: 'prodquot', skillId: level, record: recordResult });
 
   const blanks = [problem.roundedA, problem.roundedB, problem.answer];
   const labels = [`${problem.a}のがい数`, `${problem.b}のがい数`, '見積もりの答え'];
@@ -97,7 +101,7 @@ export const ProdQuotRound: React.FC<{
   const finish = () => {
     playClear();
     confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
-    recordResult({ moduleId: 'prodquot', skillId: level, label: `${problem.op} ≒ ${problem.answer}${problem.finalUnit ?? ''}`, correct: mistakes === 0 });
+    rec.finish(`${problem.op} ≒ ${problem.answer}${problem.finalUnit ?? ''}`);
     onResult?.(mistakes === 0);
     setStage('done');
   };
@@ -111,7 +115,7 @@ export const ProdQuotRound: React.FC<{
       if (next.length === blanks.length) finish();
     } else {
       playSoftTry();
-      setMistakes((m) => m + 1);
+      setMistakes((m) => m + 1); rec.mistake();
       setHint(problem.hint);
     }
   };
