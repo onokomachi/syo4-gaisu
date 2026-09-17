@@ -112,8 +112,10 @@ export const MeaningRound: React.FC<{
   sceneProblem?: MeaningSceneProblem;
   onNext: () => void;
   onResult?: (perfect: boolean) => void;
+  /** まちがえたとき。テストモードで「2回で×」を数えるのに使う */
+  onMiss?: () => void;
   nextLabel?: string;
-}> = ({ level, numberProblem: givenNumber, sceneProblem: givenScene, onNext, onResult, nextLabel }) => {
+}> = ({ level, numberProblem: givenNumber, sceneProblem: givenScene, onNext, onResult, onMiss, nextLabel }) => {
   const isScene = level === 'meaning-scene';
   const [numProblem] = useState<MeaningNumberProblem | null>(() => (isScene ? null : givenNumber ?? generateMeaningNumber(level as 'meaning-man' | 'meaning-sen')));
   const [sceneProblem] = useState<MeaningSceneProblem | null>(() => (isScene ? givenScene ?? generateMeaningScene() : null));
@@ -140,7 +142,7 @@ export const MeaningRound: React.FC<{
       finish(`${numProblem.n} → 約${numProblem.answerDigit}${numProblem.kind === 'man' ? '万' : '千'}`);
     } else {
       playSoftTry();
-      setMistakes((m) => m + 1); rec.mistake();
+      setMistakes((m) => m + 1); rec.mistake(); onMiss?.();
       setHint(numProblem.hint);
     }
   };
@@ -151,7 +153,7 @@ export const MeaningRound: React.FC<{
       finish(sceneProblem.text.slice(0, 18) + '…');
     } else {
       playSoftTry();
-      setMistakes((m) => m + 1); rec.mistake();
+      setMistakes((m) => m + 1); rec.mistake(); onMiss?.();
       setPickedWrong(answer);
       setHint(sceneProblem.why);
     }

@@ -6,9 +6,9 @@
  */
 import React, { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { ChevronLeft, ClipboardCheck, Home, RotateCcw, Trophy } from 'lucide-react';
-import { TEST_STEPS, TestProblem, TestStep, describeProblem, OMOTE_MAX, URA_MAX, TOTAL_MAX } from '../../lib/testConfig';
-import { useProgressStore, TestDetail } from '../../store/progressStore';
+import { ChevronLeft, ClipboardCheck, Home, RotateCcw, Trophy, HelpCircle, Lightbulb, Dumbbell } from 'lucide-react';
+import { TEST_STEPS, TestProblem, TestStep, describeProblem, OMOTE_MAX, URA_MAX, TOTAL_MAX , howTo, practiceModuleOf } from '../../lib/testConfig';
+import { useProgressStore, TestDetail, ModuleId } from '../../store/progressStore';
 import { MeaningRound } from './MeaningModule';
 import { RoundRound } from './RoundModule';
 import { RangeRound } from './RangeModule';
@@ -16,7 +16,11 @@ import { SumDiffRound } from './SumDiffModule';
 import { ProdQuotRound } from './ProdQuotModule';
 import { RoundJudgeRound } from './RoundJudgeModule';
 
-interface Props { onExit: () => void; }
+interface Props {
+  onExit: () => void;
+  /** テストのあと「れんしゅうする」で、その項目のモジュールへ飛ぶ */
+  onPractice?: (id: ModuleId) => void;
+}
 
 type Phase = 'INTRO' | 'RUN' | 'RESULT';
 type Mode = '表' | '裏' | 'ぜんぶ';
@@ -27,12 +31,14 @@ const stepsForMode = (mode: Mode): TestStep[] => {
   return TEST_STEPS;
 };
 
-export const MockTestModule: React.FC<Props> = ({ onExit }) => {
+export const MockTestModule: React.FC<Props> = ({ onExit, onPractice }) => {
   const [phase, setPhase] = useState<Phase>('INTRO');
   const [mode, setMode] = useState<Mode>('ぜんぶ');
   const [seed, setSeed] = useState(0); // 「もう一度」で問題を作り直す
   const [index, setIndex] = useState(0);
   const [results, setResults] = useState<Record<number, boolean>>({}); // index -> ノーミス
+  const [misses, setMisses] = useState<Record<number, number>>({});     // index -> まちがえた回数
+  const [gaveUp, setGaveUp] = useState<Record<number, boolean>>({});    // index -> 「わからない」で進んだか
   const recordResult = useProgressStore((s) => s.recordResult);
   const [recorded, setRecorded] = useState(false);
 
@@ -44,14 +50,14 @@ export const MockTestModule: React.FC<Props> = ({ onExit }) => {
   const choose = (m: Mode) => {
     setMode(m);
     setIndex(0);
-    setResults({});
+    setResults({}); setMisses({}); setGaveUp({});
     setRecorded(false);
     setPhase('RUN');
   };
   const restart = () => {
     setSeed((s) => s + 1);
     setIndex(0);
-    setResults({});
+    setResults({}); setMisses({}); setGaveUp({});
     setRecorded(false);
     setPhase('RUN');
   };
@@ -65,6 +71,34 @@ export const MockTestModule: React.FC<Props> = ({ onExit }) => {
     if (index < activeSteps.length - 1) setIndex((i) => i + 1);
     else setPhase('RESULT');
   };
+
+  /**
+   * 2回まちがえたら×にして、つぎの問題へ。
+   * 正解するまで進めない作りだと、分からない子がそこで止まり、
+   * テストが最後まで終わらない（＝点数も出ず、記録も残らない）。
+   */
+  const MAX_MISS = 2;
+  const onMiss = () => {
+    const at = index;
+    setMisses((m) => {
+      const n = (m[at] ?? 0) + 1;
+      if (n >= MAX_MISS) {
+        // 先に×を確定させてから進める（進んだあとの index に×が付かないように）
+        setResults((r) => (at in r ? r : { ...r, [at]: false }));
+        setTimeout(advance, 650);   // 「×」を見せてから切り替える
+      }
+      return { ...m, [at]: n };
+    });
+  };
+
+  /** 「わからない」。分からない問題で止まらずに、最後まで終えられるようにする */
+  const giveUp = () => {
+    const at = index;
+    setResults((r) => (at in r ? r : { ...r, [at]: false }));
+    setGaveUp((g) => ({ ...g, [at]: true }));
+    advance();
+  };
+
 
   // 採点（選んだ範囲の最大点）
   const earnedAt = (i: number) => (results[i] ? activeSteps[i].points : 0);
@@ -85,7 +119,9 @@ export const MockTestModule: React.FC<Props> = ({ onExit }) => {
       total: totalScore, totalMax,
       steps: activeSteps.map((s, i) => {
         const d = describeProblem(problems[i]);
-        return { daimon: s.daimon, sub: s.sub, title: s.title, section: s.section, q: d.q, a: d.a, points: s.points, earned: earnedAt(i), correct: !!results[i] };
+        return { daimon: s.daimon, sub: s.sub, title: s.title, section: s.section, q: d.q, a: d.a, points: s.points, earned: earnedAt(i), correct: !!results[i],
+          // 記号を残す。これが無いと「どの種類の問題が学級全体で弱いか」が出せない
+          skillId: s.skillId, misses: misses[i] ?? 0, gaveUp: !!gaveUp[i] };
       }),
     };
     recordResult({ moduleId: 'mock-test', skillId: 'mock-test', label: `本番テスト（${mode}）${totalScore}/${totalMax}点`, correct: totalScore === totalMax, detail });
@@ -127,17 +163,47 @@ export const MockTestModule: React.FC<Props> = ({ onExit }) => {
   if (phase === 'RESULT') {
     const omoteSteps = activeSteps.map((s, i) => ({ s, i })).filter((x) => x.s.section === '表');
     const uraSteps = activeSteps.map((s, i) => ({ s, i })).filter((x) => x.s.section === '裏');
+    /**
+     * 1行＝1つの大問。**まちがえた問題にだけ「やり方」を添える。**
+     * できた問題にも解説を並べると、見るべきところが埋もれる。
+     */
     const Row: React.FC<{ s: TestStep; i: number }> = ({ s, i }) => {
       const d = describeProblem(problems[i]);
+      const ok = !!results[i];
+      const practice = practiceModuleOf(s.skillId);
       return (
-        <div className="flex items-start justify-between gap-2 py-1.5 border-b border-line/60 last:border-0">
-          <div className="min-w-0">
-            <span className="font-bold text-content text-sm">大問{s.daimon}{s.sub ?? ''}　{s.title}</span>
-            <div className="text-xs text-muted font-bold mt-0.5 truncate">{d.q}　→　<span className="text-content">{d.a}</span></div>
+        <div className="py-2 border-b border-line/60 last:border-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <span className="font-bold text-content text-sm">大問{s.daimon}{s.sub ?? ''}　{s.title}</span>
+              <div className="text-xs text-muted font-bold mt-0.5">{d.q}　→　<span className="text-content">{d.a}</span></div>
+            </div>
+            <span className={`font-black tabular-nums shrink-0 ${ok ? 'text-emerald-600' : 'text-rose-400'}`}>
+              {ok ? '○' : '×'} {earnedAt(i)}/{s.points}
+            </span>
           </div>
-          <span className={`font-black tabular-nums shrink-0 ${results[i] ? 'text-emerald-600' : 'text-rose-400'}`}>
-            {results[i] ? '○' : '×'} {earnedAt(i)}/{s.points}
-          </span>
+
+          {!ok && (
+            <div className="mt-2 rounded-2xl bg-amber-50 border border-amber-200 p-3">
+              <p className="flex items-start gap-1.5 text-sm font-bold text-amber-900 leading-relaxed">
+                <Lightbulb size={16} className="text-amber-500 shrink-0 mt-0.5" />
+                {howTo(s.skillId)}
+              </p>
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                {gaveUp[i] && <span className="text-xs font-bold text-amber-700">「わからない」で つぎへ すすんだ問題</span>}
+                {!gaveUp[i] && (misses[i] ?? 0) >= 2 && <span className="text-xs font-bold text-amber-700">2回まちがえた問題</span>}
+                {practice && onPractice && (
+                  <button
+                    onClick={() => onPractice(practice)}
+                    className="ml-auto flex items-center gap-1 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600
+                               text-white font-black text-xs transition-colors active:scale-95"
+                  >
+                    <Dumbbell size={14} /> れんしゅうする
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       );
     };
@@ -154,6 +220,15 @@ export const MockTestModule: React.FC<Props> = ({ onExit }) => {
                 {uraMax > 0 && <span className="px-4 py-1.5 rounded-full bg-rose-50 text-rose-600 font-black text-sm">裏 {uraScore}/{uraMax}</span>}
               </div>
             </div>
+
+            {activeSteps.some((_, i) => !results[i]) && (
+              <div className="rounded-2xl bg-surface-2 border border-line p-4 mb-4 text-center">
+                <p className="font-black text-content text-sm">まちがえた ところに やり方を つけたよ</p>
+                <p className="text-xs text-muted font-bold mt-1">
+                  下を 見て、「れんしゅうする」から やり直そう。まちがいは 学びの たからもの！
+                </p>
+              </div>
+            )}
 
             {omoteSteps.length > 0 && (
               <div className="rounded-2xl border border-line p-4 mb-3">
@@ -202,7 +277,7 @@ export const MockTestModule: React.FC<Props> = ({ onExit }) => {
   const scoredDone = activeSteps.slice(0, index).filter((s) => s.section !== '参考').length;
 
   const renderActivity = () => {
-    const common = { onNext: advance, onResult, nextLabel: 'つぎの もんだいへ' };
+    const common = { onNext: advance, onResult, onMiss, nextLabel: 'つぎの もんだいへ' };
     switch (tp.kind) {
       case 'meaning-num': return <MeaningRound {...common} level={tp.level} numberProblem={tp.p} />;
       case 'meaning-scene': return <MeaningRound {...common} level="meaning-scene" sceneProblem={tp.p} />;
@@ -228,8 +303,21 @@ export const MockTestModule: React.FC<Props> = ({ onExit }) => {
           </button>
           <span className={`px-3 py-1 rounded-full text-xs font-black shrink-0 ${sectionColor}`}>{step.section}</span>
           <div className="font-black text-content truncate">大問{step.daimon}{step.sub ?? ''}　<span className="text-muted font-bold">{step.title}</span></div>
-          <div className="ml-auto text-sm font-black text-muted tabular-nums shrink-0">
-            {step.section === '参考' ? '参考もんだい' : `${scoredDone + 1} / ${scoredSteps}問`}
+          <div className="ml-auto flex items-center gap-2 shrink-0">
+            {/* あと何回まちがえられるか。黙って×になると、何が起きたか分からない */}
+            {(misses[index] ?? 0) > 0 && (
+              <span className="px-2 py-1 rounded-lg bg-rose-50 text-rose-500 text-xs font-black">
+                あと{Math.max(0, 2 - (misses[index] ?? 0))}回
+              </span>
+            )}
+            <button
+              onClick={giveUp}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-xl border-2 border-line text-muted
+                         hover:text-content hover:border-faint font-bold text-sm transition-colors"
+            >
+              <HelpCircle size={16} /> わからない
+            </button>
+            <span className="text-sm font-black text-muted tabular-nums">{step.section === '参考' ? '参考もんだい' : `${scoredDone + 1} / ${scoredSteps}問`}</span>
           </div>
         </div>
         <div className="max-w-5xl mx-auto mt-2 h-1.5 bg-surface-3 rounded-full overflow-hidden">

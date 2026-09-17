@@ -86,8 +86,10 @@ export const RoundRound: React.FC<{
   chooseProblem?: RoundChooseProblem;
   onNext: () => void;
   onResult?: (perfect: boolean) => void;
+  /** まちがえたとき。テストモードで「2回で×」を数えるのに使う */
+  onMiss?: () => void;
   nextLabel?: string;
-}> = ({ level, whichPlaceProblem, placeProblem, digitProblem, chooseProblem, onNext, onResult, nextLabel }) => {
+}> = ({ level, whichPlaceProblem, placeProblem, digitProblem, chooseProblem, onNext, onResult, onMiss, nextLabel }) => {
   const [whichPlaceP] = useState<RoundWhichPlaceProblem | null>(() => (level === 'round-which-place' ? whichPlaceProblem ?? generateRoundWhichPlace() : null));
   const [placeP] = useState<RoundPlaceProblem | null>(() => (level === 'round-place' ? placeProblem ?? generateRoundPlace() : null));
   const [digitP] = useState<RoundDigitProblem | null>(() =>
@@ -114,25 +116,25 @@ export const RoundRound: React.FC<{
   const submitPlace = (v: string) => {
     if (!placeP) return;
     if (Number(v) === placeP.answer) finish(`${placeP.n} → ${placeP.placeLabel}まで`);
-    else { playSoftTry(); setMistakes((m) => m + 1); rec.mistake(); setHint(placeP.hint); }
+    else { playSoftTry(); setMistakes((m) => m + 1); rec.mistake(); onMiss?.(); setHint(placeP.hint); }
   };
 
   const submitDigit = (v: string) => {
     if (!digitP) return;
     if (Number(v) === digitP.answer) finish(`${digitP.n} → 上から${digitP.k}けた`);
-    else { playSoftTry(); setMistakes((m) => m + 1); rec.mistake(); setHint(digitP.hint); }
+    else { playSoftTry(); setMistakes((m) => m + 1); rec.mistake(); onMiss?.(); setHint(digitP.hint); }
   };
 
   const chooseAnswer = (i: number) => {
     if (!chooseP) return;
     if (i === chooseP.answerIndex) finish(chooseP.choices[i]);
-    else { playSoftTry(); setMistakes((m) => m + 1); rec.mistake(); setPickedWrong(i); setHint(chooseP.hint); }
+    else { playSoftTry(); setMistakes((m) => m + 1); rec.mistake(); onMiss?.(); setPickedWrong(i); setHint(chooseP.hint); }
   };
 
   const chooseWhichPlace = (i: number) => {
     if (!whichPlaceP) return;
     if (i === whichPlaceP.answerIndex) finish(`${whichPlaceP.n} → ${whichPlaceP.choices[i]}を 四捨五入`);
-    else { playSoftTry(); setMistakes((m) => m + 1); rec.mistake(); setPickedWrong(i); setHint(whichPlaceP.hint); }
+    else { playSoftTry(); setMistakes((m) => m + 1); rec.mistake(); onMiss?.(); setPickedWrong(i); setHint(whichPlaceP.hint); }
   };
 
   return (

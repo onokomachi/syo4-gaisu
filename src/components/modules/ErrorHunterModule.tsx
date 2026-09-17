@@ -55,8 +55,10 @@ export const GaisuErrorRound: React.FC<{
   startStage?: 'judge' | 'fix';
   onNext: () => void;
   onResult?: (perfect: boolean) => void;
+  /** まちがえたとき。テストモードで「2回で×」を数えるのに使う */
+  onMiss?: () => void;
   nextLabel?: string;
-}> = ({ example, startStage = 'judge', onNext, onResult, nextLabel = 'つぎの もんだい' }) => {
+}> = ({ example, startStage = 'judge', onNext, onResult, onMiss, nextLabel = 'つぎの もんだい' }) => {
   const [ex] = useState<GaisuErrorExample>(() => example ?? generateGaisuError());
   const [stage, setStage] = useState<'judge' | 'fix' | 'reason' | 'done'>(startStage);
   const [mistakes, setMistakes] = useState(0);
@@ -81,7 +83,7 @@ export const GaisuErrorRound: React.FC<{
       else setStage('fix');
     } else {
       playSoftTry();
-      setMistakes((m) => m + 1); rec.mistake();
+      setMistakes((m) => m + 1); rec.mistake(); onMiss?.();
       setHint(
         ex.isCorrect
           ? 'もう一度 よく見て。じっさいに 自分でも 四捨五入して たしかめてみよう。'
@@ -96,7 +98,7 @@ export const GaisuErrorRound: React.FC<{
       setStage('reason');
     } else {
       playSoftTry();
-      setMistakes((m) => m + 1); rec.mistake();
+      setMistakes((m) => m + 1); rec.mistake(); onMiss?.();
       setHint(ex.fixHint);
     }
   };
@@ -105,7 +107,7 @@ export const GaisuErrorRound: React.FC<{
     if (i === ex.correctReasonIndex) finish();
     else {
       playSoftTry();
-      setMistakes((m) => m + 1); rec.mistake();
+      setMistakes((m) => m + 1); rec.mistake(); onMiss?.();
       setHint('うーん、ちがうみたい。もとの問題と 正しい答えを くらべて、どこが ちがったか 考えよう。');
     }
   };
