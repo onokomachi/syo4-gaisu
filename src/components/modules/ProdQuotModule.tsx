@@ -81,8 +81,10 @@ export const ProdQuotRound: React.FC<{
   problem?: ProdQuotProblem;
   onNext: () => void;
   onResult?: (perfect: boolean) => void;
+  /** まちがえたとき。テストモードで「2回で×」を数えるのに使う */
+  onMiss?: () => void;
   nextLabel?: string;
-}> = ({ level, problem: given, onNext, onResult, nextLabel }) => {
+}> = ({ level, problem: given, onNext, onResult, onMiss, nextLabel }) => {
   const [problem] = useState<ProdQuotProblem>(() => given ?? generateProdQuot(level));
   const [filled, setFilled] = useState<number[]>([]);
   const [stage, setStage] = useState<'answer' | 'done'>('answer');
@@ -115,7 +117,7 @@ export const ProdQuotRound: React.FC<{
       if (next.length === blanks.length) finish();
     } else {
       playSoftTry();
-      setMistakes((m) => m + 1); rec.mistake();
+      setMistakes((m) => m + 1); rec.mistake(); onMiss?.();
       setHint(problem.hint);
     }
   };

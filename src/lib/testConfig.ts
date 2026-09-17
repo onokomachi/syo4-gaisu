@@ -13,6 +13,7 @@ import {
   ProdQuotLevel, ProdQuotProblem, generateProdQuot,
   RoundJudgeBudgetProblem, generateRoundJudgeBudget,
 } from './problems';
+import { skillToModuleId, type ModuleId } from '../store/progressStore';
 
 export type TestProblem =
   | { kind: 'meaning-num'; level: MeaningLevel; p: MeaningNumberProblem }
@@ -128,3 +129,47 @@ export function describeProblem(tp: TestProblem): { q: string; a: string } {
 export const OMOTE_MAX = TEST_STEPS.filter((s) => s.section === '表').reduce((a, s) => a + s.points, 0); // 100
 export const URA_MAX = TEST_STEPS.filter((s) => s.section === '裏').reduce((a, s) => a + s.points, 0);   // 50
 export const TOTAL_MAX = OMOTE_MAX + URA_MAX; // 150
+
+/* ---------------- テストのあとに出す「やり方の一言」 ---------------- */
+
+/**
+ * まちがえた問題に添える、やり方のひとこと。
+ *
+ * テスト中は出さない（テストとして成り立たなくなる）。**終わってから**
+ * まちがえた問題にだけ添える。長い解説は読まれないので、1文にする。
+ *
+ * 項目ごとに書いたものが無ければ、モジュール（記号の前半）のものを使う。
+ * 新しいレベルを足しても、説明が空になることがない。
+ */
+const HOW_BY_SKILL: Record<string, string> = {
+  'round-place': '上から何けた目を 見るのかを 先に きめてから、その1つ下の位を 四捨五入しよう。',
+  'round-digit2': '「上から2けたのがい数」は、上から3けた目を 四捨五入するよ。',
+  'round-choose': '何の位までの がい数に するかで、見る位が 変わるよ。',
+  'range-hundreds': 'いちばん小さい数は「◯◯0」、いちばん大きい数は「◯◯9」と考えよう。',
+  'sumdiff-triple': '3つ以上でも やり方は 同じ。先に それぞれを がい数にしてから 計算しよう。',
+  'prodquot-word': 'かけ算・わり算の 見積もりは、上から1けたの がい数に そろえると 速いよ。',
+  'roundjudge-budget': '買い物は 多めに 見つもる（切り上げ）。足りなくなると こまるからだよ。',
+};
+
+const HOW_BY_MODULE: Record<string, string> = {
+  meaning: 'がい数は「だいたいの数」。どのくらい ざっくり見るのかを 先に きめよう。',
+  round: '四捨五入は、もとめる位の **1つ下** の位を 見るよ。',
+  range: 'はんいは「いちばん小さい数」と「いちばん大きい数」を 両方 考えよう。',
+  sumdiff: 'たし算・ひき算の 見積もりは、もとめる位に そろえてから 計算しよう。',
+  prodquot: 'かけ算・わり算の 見積もりは、上から1けたに そろえると 計算しやすいよ。',
+  roundjudge: '切り上げ・切り捨て・四捨五入は、場面で 使い分けるよ。',
+  eh: 'どの位を 見て 四捨五入したのかを、順に たしかめよう。',
+  mock: '見直しは「どの位まで もとめるのか」から。見る位を まちがえていないか 見よう。',
+};
+
+export function howTo(skillId: string): string {
+  return HOW_BY_SKILL[skillId]
+    ?? HOW_BY_MODULE[skillId.split('-')[0] ?? '']
+    ?? 'もう一度 ゆっくり やってみよう。';
+}
+
+/** その項目を練習できるモジュール。テストのあと「れんしゅうする」で飛ぶ先。 */
+export function practiceModuleOf(skillId: string): ModuleId | null {
+  const m = skillToModuleId(skillId);
+  return m === 'mock-test' || m === 'boss-battle' ? null : m;
+}

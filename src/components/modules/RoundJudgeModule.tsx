@@ -86,8 +86,10 @@ export const RoundJudgeRound: React.FC<{
   floorProblem?: RoundJudgeFloorProblem;
   onNext: () => void;
   onResult?: (perfect: boolean) => void;
+  /** まちがえたとき。テストモードで「2回で×」を数えるのに使う */
+  onMiss?: () => void;
   nextLabel?: string;
-}> = ({ level, valueProblem, methodProblem, budgetProblem, floorProblem, onNext, onResult, nextLabel }) => {
+}> = ({ level, valueProblem, methodProblem, budgetProblem, floorProblem, onNext, onResult, onMiss, nextLabel }) => {
   const [valueP] = useState<RoundJudgeValueProblem | null>(() => (level === 'roundjudge-value' ? valueProblem ?? generateRoundJudgeValue() : null));
   const [methodP] = useState<RoundJudgeMethodProblem | null>(() => (level === 'roundjudge-method' ? methodProblem ?? generateRoundJudgeMethod() : null));
   const [budgetP] = useState<RoundJudgeBudgetProblem | null>(() => (level === 'roundjudge-budget' ? budgetProblem ?? generateRoundJudgeBudget() : null));
@@ -113,13 +115,13 @@ export const RoundJudgeRound: React.FC<{
   const submitValue = (v: string) => {
     if (!valueP) return;
     if (Number(v) === valueP.answer) finish(`${valueP.n} → ${valueP.answer}`);
-    else { playSoftTry(); setMistakes((m) => m + 1); rec.mistake(); setHint(valueP.hint); }
+    else { playSoftTry(); setMistakes((m) => m + 1); rec.mistake(); onMiss?.(); setHint(valueP.hint); }
   };
 
   const chooseMethod = (i: number) => {
     if (!methodP) return;
     if (i === methodP.answerIndex) finish(methodP.choices[i]);
-    else { playSoftTry(); setMistakes((m) => m + 1); rec.mistake(); setPickedWrong(i); setHint(methodP.why); }
+    else { playSoftTry(); setMistakes((m) => m + 1); rec.mistake(); onMiss?.(); setPickedWrong(i); setHint(methodP.why); }
   };
 
   const chooseBudgetMethod = (i: number) => {
@@ -131,7 +133,7 @@ export const RoundJudgeRound: React.FC<{
       setStage('stage2');
     } else {
       playSoftTry();
-      setMistakes((m) => m + 1); rec.mistake();
+      setMistakes((m) => m + 1); rec.mistake(); onMiss?.();
       setPickedWrong(i);
       setHint(budgetP.explain1);
     }
@@ -143,7 +145,7 @@ export const RoundJudgeRound: React.FC<{
       finish(`${budgetP.budget}円で ${budgetP.canBuy ? '買える' : '買えない'}`);
     } else {
       playSoftTry();
-      setMistakes((m) => m + 1); rec.mistake();
+      setMistakes((m) => m + 1); rec.mistake(); onMiss?.();
       setPickedWrongBool(answer);
       setHint(budgetP.hint2);
     }
@@ -152,7 +154,7 @@ export const RoundJudgeRound: React.FC<{
   const submitFloor = (v: string) => {
     if (!floorP) return;
     if (Number(v) === floorP.floorCount) finish(`${floorP.budget}円で ${floorP.itemName} ${floorP.floorCount}こ`);
-    else { playSoftTry(); setMistakes((m) => m + 1); rec.mistake(); setHint(floorP.hint); }
+    else { playSoftTry(); setMistakes((m) => m + 1); rec.mistake(); onMiss?.(); setHint(floorP.hint); }
   };
 
   return (

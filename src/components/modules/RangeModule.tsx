@@ -80,8 +80,10 @@ export const RangeRound: React.FC<{
   problem?: RangeProblem;
   onNext: () => void;
   onResult?: (perfect: boolean) => void;
+  /** まちがえたとき。テストモードで「2回で×」を数えるのに使う */
+  onMiss?: () => void;
   nextLabel?: string;
-}> = ({ level, problem: given, onNext, onResult, nextLabel }) => {
+}> = ({ level, problem: given, onNext, onResult, onMiss, nextLabel }) => {
   const [problem] = useState<RangeProblem>(() => given ?? generateRange(level));
   const [stage, setStage] = useState<'min' | 'max' | 'express' | 'done'>('min');
   const [mistakes, setMistakes] = useState(0);
@@ -107,7 +109,7 @@ export const RangeRound: React.FC<{
       setStage('max');
     } else {
       playSoftTry();
-      setMistakes((m) => m + 1); rec.mistake();
+      setMistakes((m) => m + 1); rec.mistake(); onMiss?.();
       setHint(problem.hint);
     }
   };
@@ -119,7 +121,7 @@ export const RangeRound: React.FC<{
       setStage('express');
     } else {
       playSoftTry();
-      setMistakes((m) => m + 1); rec.mistake();
+      setMistakes((m) => m + 1); rec.mistake(); onMiss?.();
       setHint(`いちばん大きい整数は、${problem.target}より ${problem.unit / 2}大きい数の 一つ手前だよ。`);
     }
   };
@@ -129,7 +131,7 @@ export const RangeRound: React.FC<{
       finish();
     } else {
       playSoftTry();
-      setMistakes((m) => m + 1); rec.mistake();
+      setMistakes((m) => m + 1); rec.mistake(); onMiss?.();
       setPickedWrong(i);
       setHint(problem.expressWrongHint);
     }
