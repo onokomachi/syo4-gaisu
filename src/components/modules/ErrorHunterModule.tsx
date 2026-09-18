@@ -15,6 +15,7 @@ import { HintBox } from '../ui/primitives';
 import { GaisuErrorExample, generateGaisuError } from '../../lib/problems';
 import { useProgressStore } from '../../store/progressStore';
 import { playClear, playSoftTry } from '../../lib/sound';
+import { ScratchPadToggle } from 'learning-app-kit/react';
 
 interface Props { onExit: () => void; }
 
@@ -132,6 +133,9 @@ export const GaisuErrorRound: React.FC<{
               <HintBox tone="wrong">{hint}</HintBox>
             </div>
           )}
+
+          {/* 暗算では厳しい計算があるので、紙のかわりに書ける場所を出す（採点はしない） */}
+          <ScratchPadToggle ops={['+', '-', '×', '÷']} decimal={false} />
 
           {stage === 'judge' && (
             <>

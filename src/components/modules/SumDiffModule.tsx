@@ -4,7 +4,7 @@
  * 見積もりの式（□を順番にうめる）→ 見積もりの答え、の流れで身につける。
  */
 import React, { useState } from 'react';
-import { useRoundRecorder } from 'learning-app-kit/react';
+import { useRoundRecorder, ScratchPadToggle } from 'learning-app-kit/react';
 import confetti from 'canvas-confetti';
 import { Wand2 } from 'lucide-react';
 import { AppShell } from '../shared/AppShell';
@@ -155,6 +155,11 @@ export const SumDiffRound: React.FC<{
         </div>
 
         {hint && <HintBox tone="wrong">{hint}</HintBox>}
+
+
+        {/* 暗算では厳しい計算があるので、紙のかわりに書ける場所を出す（採点はしない） */}
+
+        <ScratchPadToggle ops={['+', '-', '×', '÷']} decimal={false} />
 
         {stage === 'answer' && (
           <AnswerEntry onSubmit={submit} allowDecimal={false} submitLabel="□に 入れる" accentText="text-emerald-600" />
