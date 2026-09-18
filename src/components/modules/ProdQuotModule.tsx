@@ -5,7 +5,7 @@
  * 文章題レベルでは 実さいの代金を 見積もる 力まで つなげる。
  */
 import React, { useState } from 'react';
-import { useRoundRecorder } from 'learning-app-kit/react';
+import { useRoundRecorder, ScratchPadToggle } from 'learning-app-kit/react';
 import confetti from 'canvas-confetti';
 import { Wand2 } from 'lucide-react';
 import { AppShell } from '../shared/AppShell';
@@ -156,6 +156,11 @@ export const ProdQuotRound: React.FC<{
         </div>
 
         {hint && <HintBox tone="wrong">{hint}</HintBox>}
+
+
+        {/* 暗算では厳しい計算があるので、紙のかわりに書ける場所を出す（採点はしない） */}
+
+        <ScratchPadToggle ops={['×', '÷', '+', '-']} decimal={false} />
 
         {stage === 'answer' && (
           <AnswerEntry onSubmit={submit} allowDecimal={false} submitLabel="□に 入れる" accentText="text-cyan-600" />

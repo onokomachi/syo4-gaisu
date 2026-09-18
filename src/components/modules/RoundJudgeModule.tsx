@@ -4,7 +4,7 @@
  * 最後は「切り上げて見積もっても 予算内か」を判断する 応用まで つなげる。
  */
 import React, { useState } from 'react';
-import { useRoundRecorder } from 'learning-app-kit/react';
+import { useRoundRecorder, ScratchPadToggle } from 'learning-app-kit/react';
 import confetti from 'canvas-confetti';
 import { Wand2, Check, X } from 'lucide-react';
 import { AppShell } from '../shared/AppShell';
@@ -212,6 +212,11 @@ export const RoundJudgeRound: React.FC<{
         )}
 
         {hint && <HintBox tone="wrong">{hint}</HintBox>}
+
+
+        {/* 暗算では厳しい計算があるので、紙のかわりに書ける場所を出す（採点はしない） */}
+
+        <ScratchPadToggle ops={['+', '-', '×', '÷']} decimal={false} />
 
         {stage === 'answer' && valueP && (
           <AnswerEntry onSubmit={submitValue} allowDecimal={false} accentText="text-teal-600" />
