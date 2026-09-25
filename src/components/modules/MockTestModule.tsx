@@ -281,20 +281,9 @@ export const MockTestModule: React.FC<Props> = ({ onExit, onPractice }) => {
   const scoredSteps = activeSteps.filter((s) => s.section !== '参考').length;
   const scoredDone = activeSteps.slice(0, index).filter((s) => s.section !== '参考').length;
 
-  const renderActivity = () => {
-    const common = { onNext: advance, onResult, onMiss, nextLabel: 'つぎの もんだいへ' };
-    switch (tp.kind) {
-      case 'meaning-num': return <MeaningRound {...common} level={tp.level} numberProblem={tp.p} />;
-      case 'meaning-scene': return <MeaningRound {...common} level="meaning-scene" sceneProblem={tp.p} />;
-      case 'round-place': return <RoundRound {...common} level="round-place" placeProblem={tp.p} />;
-      case 'round-digit': return <RoundRound {...common} level={tp.k === 1 ? 'round-digit1' : 'round-digit2'} digitProblem={tp.p} />;
-      case 'round-choose': return <RoundRound {...common} level="round-choose" chooseProblem={tp.p} />;
-      case 'range': return <RangeRound {...common} level={tp.level} problem={tp.p} />;
-      case 'sumdiff': return <SumDiffRound {...common} level={tp.level} problem={tp.p} />;
-      case 'prodquot': return <ProdQuotRound {...common} level={tp.level} problem={tp.p} />;
-      case 'roundjudge-budget': return <RoundJudgeRound {...common} level="roundjudge-budget" budgetProblem={tp.p} />;
-    }
-  };
+  const renderActivity = () => (
+    <TestActivity tp={tp} onNext={advance} onResult={onResult} onMiss={onMiss} nextLabel="つぎの もんだいへ" />
+  );
 
   const sectionColor = step.section === '表' ? 'bg-blue-100 text-blue-700' : step.section === '裏' ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-700';
 
@@ -336,4 +325,28 @@ export const MockTestModule: React.FC<Props> = ({ onExit, onPractice }) => {
       </div>
     </div>
   );
+};
+
+/**
+ * 本番テストの1問を、練習と同じ解答画面で出す。
+ * 神域の試練もこれを使う（練習・テスト・試練で、同じ問題は同じ画面で解く）。
+ */
+export const TestActivity: React.FC<{
+  tp: TestProblem;
+  onNext: () => void;
+  onResult: (perfect: boolean) => void;
+  onMiss?: () => void;
+  nextLabel?: string;
+}> = ({ tp, ...common }) => {
+  switch (tp.kind) {
+    case 'meaning-num': return <MeaningRound {...common} level={tp.level} numberProblem={tp.p} />;
+    case 'meaning-scene': return <MeaningRound {...common} level="meaning-scene" sceneProblem={tp.p} />;
+    case 'round-place': return <RoundRound {...common} level="round-place" placeProblem={tp.p} />;
+    case 'round-digit': return <RoundRound {...common} level={tp.k === 1 ? 'round-digit1' : 'round-digit2'} digitProblem={tp.p} />;
+    case 'round-choose': return <RoundRound {...common} level="round-choose" chooseProblem={tp.p} />;
+    case 'range': return <RangeRound {...common} level={tp.level} problem={tp.p} />;
+    case 'sumdiff': return <SumDiffRound {...common} level={tp.level} problem={tp.p} />;
+    case 'prodquot': return <ProdQuotRound {...common} level={tp.level} problem={tp.p} />;
+    case 'roundjudge-budget': return <RoundJudgeRound {...common} level="roundjudge-budget" budgetProblem={tp.p} />;
+  }
 };
