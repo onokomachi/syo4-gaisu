@@ -1,9 +1,15 @@
 /**
  * 冥界神テーマ専用の背景：闇の玉座に鎮座する冥界の王のイメージ。
  * 紫紅の深淵に、ゆっくり回転する巨大な魔法陣（ルーン刻印つき）、
- * ときおり走る紫電の稲妻、漂う暗い残り火。過度に不気味にならないよう、
+ * 画面全体を高頻度で走る紫電の稲妻、漂う暗い残り火。過度に不気味にならないよう、
  * 骸骨・幽霊などの直接的なホラーモチーフは使わず「かっこいい魔王」路線でまとめる。
  * theme === 'netherworld' のときだけ描画する。
+ *
+ * 光過敏への配慮（WCAG 2.3.1「3回の閃光」）:
+ * 稲妻は1回ごとに「光って→消える」だけで、1本の中で点滅させない。稲妻が落ちる間隔は
+ * MIN_STRIKE_GAP_MS より詰めないので、明滅は最大でも約2.4回/秒。画面全体を光らせる
+ * フラッシュはその一部でだけ起こし、さらに間隔をあける。「視差効果を減らす」設定では稲妻を大きく減らし、
+ * 画面全体のフラッシュは出さない。
  */
 import React, { useEffect, useRef } from 'react';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -19,19 +25,83 @@ interface Ember {
   decay: number;
 }
 
+type Pt = { x: number; y: number };
+
 interface Bolt {
-  path: { x: number; y: number }[];
-  age: number;
-  duration: number;
+  main: Pt[];
+  branches: Pt[][];
+  age: number; // 経過ms
+  duration: number; // 光っている時間(ms)
 }
 
-function buildBoltPath(x0: number, y0: number, x1: number, y1: number, depth: number): { x: number; y: number }[] {
+/** 稲妻が落ちる（1〜3本同時）間隔。下限があるので明滅は最大 1000/420 ≒ 2.4回/秒。 */
+const MIN_STRIKE_GAP_MS = 420;
+const MAX_STRIKE_GAP_MS = 1000;
+/** 画面全体を光らせるフラッシュどうしの最短間隔（稲妻よりさらに間引く）。 */
+const MIN_SCREEN_FLASH_GAP_MS = 700;
+
+/** 始点→終点を、線分に垂直な方向へランダムにずらしながら分割していく（中点変位法）。横向きの稲妻にも使える。 */
+function buildBoltPath(x0: number, y0: number, x1: number, y1: number, depth: number): Pt[] {
   if (depth <= 0) return [{ x: x0, y: y0 }, { x: x1, y: y1 }];
-  const mx = (x0 + x1) / 2 + (Math.random() - 0.5) * (y1 - y0) * 0.35;
-  const my = (y0 + y1) / 2 + (Math.random() - 0.5) * (x1 - x0) * 0.15;
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const len = Math.hypot(dx, dy) || 1;
+  const off = (Math.random() - 0.5) * len * 0.35;
+  const mx = (x0 + x1) / 2 + (-dy / len) * off;
+  const my = (y0 + y1) / 2 + (dx / len) * off;
   const left = buildBoltPath(x0, y0, mx, my, depth - 1);
   const right = buildBoltPath(mx, my, x1, y1, depth - 1);
   return [...left, ...right.slice(1)];
+}
+
+function randomEdgePoint(w: number, h: number): Pt {
+  const side = Math.floor(Math.random() * 4);
+  if (side === 0) return { x: Math.random() * w, y: -h * 0.05 };
+  if (side === 1) return { x: w * 1.05, y: Math.random() * h };
+  if (side === 2) return { x: Math.random() * w, y: h * 1.05 };
+  return { x: -w * 0.05, y: Math.random() * h };
+}
+
+/** 画面全体を使う1本の稲妻（本線＋枝＋小枝）。天から地へ／魔法陣から四方へ／画面を横切る、の3種類。 */
+function spawnBolt(w: number, h: number, cx: number, cy: number): Bolt {
+  const kind = Math.random();
+  let x0: number, y0: number, x1: number, y1: number;
+  if (kind < 0.6) {
+    x0 = w * (-0.05 + Math.random() * 1.1);
+    y0 = -h * 0.05;
+    x1 = x0 + (Math.random() - 0.5) * w * 1.2;
+    y1 = h * (0.9 + Math.random() * 0.2);
+  } else if (kind < 0.85) {
+    x0 = cx;
+    y0 = cy;
+    ({ x: x1, y: y1 } = randomEdgePoint(w, h));
+  } else {
+    const fromLeft = Math.random() < 0.5;
+    x0 = fromLeft ? -w * 0.05 : w * 1.05;
+    y0 = h * (0.1 + Math.random() * 0.5);
+    x1 = fromLeft ? w * 1.05 : -w * 0.05;
+    y1 = y0 + (Math.random() - 0.5) * h * 0.6;
+  }
+  const main = buildBoltPath(x0, y0, x1, y1, 6);
+
+  const dir = Math.atan2(y1 - y0, x1 - x0);
+  const len = Math.hypot(x1 - x0, y1 - y0);
+  const branches: Pt[][] = [];
+  const branchCount = 2 + Math.floor(Math.random() * 4);
+  for (let i = 0; i < branchCount; i++) {
+    const s = main[Math.floor(main.length * (0.12 + Math.random() * 0.6))];
+    const ang = dir + (Math.random() - 0.5) * 1.4;
+    const bl = len * (0.15 + Math.random() * 0.3);
+    const branch = buildBoltPath(s.x, s.y, s.x + Math.cos(ang) * bl, s.y + Math.sin(ang) * bl, 4);
+    branches.push(branch);
+    if (Math.random() < 0.5 && branch.length > 2) {
+      const ss = branch[Math.floor(branch.length * (0.3 + Math.random() * 0.4))];
+      const a2 = ang + (Math.random() - 0.5) * 1.2;
+      const l2 = bl * (0.3 + Math.random() * 0.3);
+      branches.push(buildBoltPath(ss.x, ss.y, ss.x + Math.cos(a2) * l2, ss.y + Math.sin(a2) * l2, 3));
+    }
+  }
+  return { main, branches, age: 0, duration: 260 + Math.random() * 200 };
 }
 
 export const NetherworldRain: React.FC = () => {
@@ -46,9 +116,12 @@ export const NetherworldRain: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
     let embers: Ember[] = [];
     let bolts: Bolt[] = [];
-    let boltTimer = 2200 + Math.random() * 2600;
+    let nextStrikeAt = performance.now() + 600;
+    let lastScreenFlashAt = -Infinity;
+    let screenFlash = 0; // 画面全体フラッシュの強さ（1→0へ減衰するだけで、ぶり返さない）
     let cx = 0, cy = 0, baseR = 0;
 
     const spawnEmber = (): Ember => ({
@@ -136,6 +209,7 @@ export const NetherworldRain: React.FC = () => {
     const draw = (t: number) => {
       rafRef.current = requestAnimationFrame(draw);
       if (t - last < interval) return;
+      const dt = Math.min(100, t - last);
       last = t;
 
       // 闇の深淵（紫紅のビネット）
@@ -161,37 +235,64 @@ export const NetherworldRain: React.FC = () => {
       drawMagicCircle(baseR * 0.72, -t * 0.00012, 0.5);
       ctx.globalCompositeOperation = 'source-over';
 
-      // ときおり走る紫電の稲妻
-      boltTimer -= interval;
-      if (bolts.length === 0 && boltTimer <= 0) {
-        const x0 = Math.random() * canvas.width;
-        const y0 = -20;
-        const x1 = x0 + (Math.random() - 0.5) * canvas.width * 0.6;
-        const y1 = canvas.height * (0.5 + Math.random() * 0.4);
-        bolts = [{ path: buildBoltPath(x0, y0, x1, y1, 5), age: 0, duration: 260 + Math.random() * 140 }];
-        boltTimer = 5000 + Math.random() * 6500;
+      // 画面全体を走る紫電の稲妻（1回に1〜3本。間隔は MIN_STRIKE_GAP_MS 以上）
+      if (t >= nextStrikeAt) {
+        const count = reduceMotion ? 1 : Math.random() < 0.55 ? 1 : Math.random() < 0.67 ? 2 : 3;
+        for (let i = 0; i < count; i++) bolts.push(spawnBolt(canvas.width, canvas.height, cx, cy));
+        nextStrikeAt = t + (reduceMotion
+          ? 3000 + Math.random() * 3000
+          : MIN_STRIKE_GAP_MS + Math.random() * (MAX_STRIKE_GAP_MS - MIN_STRIKE_GAP_MS));
+        if (!reduceMotion && t - lastScreenFlashAt >= MIN_SCREEN_FLASH_GAP_MS && Math.random() < 0.6) {
+          screenFlash = 1;
+          lastScreenFlashAt = t;
+        }
       }
-      if (bolts.length > 0) {
-        for (const b of bolts) b.age += interval;
-        bolts = bolts.filter((b) => b.age <= b.duration);
-      }
+      for (const b of bolts) b.age += dt;
+      bolts = bolts.filter((b) => b.age <= b.duration);
+
       ctx.globalCompositeOperation = 'lighter';
+      if (screenFlash > 0) {
+        ctx.fillStyle = `rgba(170, 110, 255, ${screenFlash * 0.2})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        screenFlash = Math.max(0, screenFlash - dt / 180);
+      }
+      // 画面サイズに応じて太さ・グローをスケール（スマホでも大画面でも見映えを保つ）
+      const scale = Math.max(0.6, Math.min(2.2, Math.max(canvas.width, canvas.height) / 1100));
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      const strokePath = (path: Pt[], width: number, color: string) => {
+        if (path.length < 2) return;
+        ctx.beginPath();
+        ctx.moveTo(path[0].x, path[0].y);
+        for (let i = 1; i < path.length; i++) ctx.lineTo(path[i].x, path[i].y);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.stroke();
+      };
       for (const b of bolts) {
         const t01 = b.age / b.duration;
-        const a = Math.max(0, 1 - t01 * t01);
-        const strokePath = (width: number, color: string) => {
-          ctx.beginPath();
-          ctx.moveTo(b.path[0].x, b.path[0].y);
-          for (let i = 1; i < b.path.length; i++) ctx.lineTo(b.path[i].x, b.path[i].y);
-          ctx.strokeStyle = color;
-          ctx.lineWidth = width;
-          ctx.lineJoin = 'round';
-          ctx.lineCap = 'round';
-          ctx.stroke();
-        };
-        strokePath(18, `rgba(160, 60, 230, ${a * 0.18})`);
-        strokePath(7, `rgba(190, 100, 255, ${a * 0.45})`);
-        strokePath(2.4, `rgba(240, 210, 255, ${a * 0.9})`);
+        const a = Math.max(0, 1 - t01 * t01); // 光って→なめらかに消えるだけ（1本の中で点滅させない）
+
+        // 稲妻の先端に光の炸裂
+        const tip = b.main[b.main.length - 1];
+        const burstR = 180 * scale * (0.6 + 0.4 * a);
+        const burst = ctx.createRadialGradient(tip.x, tip.y, 0, tip.x, tip.y, burstR);
+        burst.addColorStop(0, `rgba(235, 210, 255, ${a * 0.45})`);
+        burst.addColorStop(0.35, `rgba(170, 90, 255, ${a * 0.22})`);
+        burst.addColorStop(1, 'rgba(170, 90, 255, 0)');
+        ctx.fillStyle = burst;
+        ctx.fillRect(tip.x - burstR, tip.y - burstR, burstR * 2, burstR * 2);
+
+        // 外側の大きなグロー → 中間グロー → 白い芯、の順に重ねる
+        strokePath(b.main, 40 * scale, `rgba(140, 50, 220, ${a * 0.1})`);
+        strokePath(b.main, 18 * scale, `rgba(160, 70, 240, ${a * 0.18})`);
+        strokePath(b.main, 7 * scale, `rgba(190, 110, 255, ${a * 0.45})`);
+        strokePath(b.main, 2.6 * scale, `rgba(245, 225, 255, ${a * 0.95})`);
+        for (const br of b.branches) {
+          strokePath(br, 14 * scale, `rgba(150, 60, 230, ${a * 0.12})`);
+          strokePath(br, 5 * scale, `rgba(185, 110, 255, ${a * 0.38})`);
+          strokePath(br, 1.8 * scale, `rgba(235, 210, 255, ${a * 0.75})`);
+        }
       }
       ctx.globalCompositeOperation = 'source-over';
 
