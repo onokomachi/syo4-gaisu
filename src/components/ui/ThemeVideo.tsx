@@ -26,8 +26,6 @@ export function detectBgMode(): BgMode {
 export const VIDEO_TYPE = {
   mp4: 'video/mp4; codecs="avc1.64001F"',
   webm: 'video/webm; codecs="vp9"',
-  mp4WithAudio: 'video/mp4; codecs="avc1.64001F, mp4a.40.2"',
-  webmWithAudio: 'video/webm; codecs="vp9, opus"',
 } as const;
 
 export interface VideoSources {

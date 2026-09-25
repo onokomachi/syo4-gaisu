@@ -1,7 +1,7 @@
 /**
  * ボス戦モード（スピードワールド限定・スペシャルステージ）。
  * 闇の雷をあやつる「冥界神」と、RPS風の2本立てシステムで戦う。
- * 動画は 待機（無音でループ）／通常攻撃／ため技攻撃 の3本。攻撃の2本は効果音オンのときだけ音を出す。
+ * 動画は 待機／通常攻撃／ため技攻撃 の3本。すべて無音（音声トラックを持たない）。
  * - ボスは プレイヤーの解答状況と無関係に、難易度ごとの一定間隔で行動ゲージが満ちて
  *   通常攻撃／タメ攻撃（必殺技・予告あり）を自動発動する。
  * - プレイヤーは問題に正解すると「アクションポイント」を獲得し、貯めた分をいつでも使って
@@ -16,7 +16,6 @@ import {
   ChevronLeft, Heart, Home, Lock, Orbit, RotateCcw, Shield, ShieldCheck, Skull, Swords, Trophy, Zap,
 } from 'lucide-react';
 import { useProgressStore } from '../../store/progressStore';
-import { useSettingsStore } from '../../store/settingsStore';
 import { VIDEO_TYPE } from '../ui/ThemeVideo';
 import { useBadgeRatio } from '../../lib/useBadgeRatio';
 import { THEME_UNLOCK, isThemeUnlocked } from '../../lib/themeUnlock';
@@ -46,21 +45,21 @@ type AttackVideos = Record<'normal' | 'special', HTMLVideoElement>;
 
 /**
  * 攻撃動画の <video> は画面（INTRO／BATTLE／RESULT）をまたいで同じ要素を使い回すため、Reactの外で1回だけ作る。
- * - 最初から preload しておき、攻撃が始まった瞬間に読み込み待ちなしで流せるようにする。
- * - iOS Safari は「ユーザーのタップの中で一度 play() された要素」でないと音つきで再生できないので、
- *   ティアを選ぶボタンのタップ時に unlockAttackVideos() で一度だけ無音再生→停止しておく。
+ * 最初から preload しておき、攻撃が始まった瞬間に読み込み待ちなしで流せるようにする。
+ * 動画は音声トラックを持たないが、念のため muted も付けておく（自動再生のブロック対策）。
  */
 function createAttackVideos(): AttackVideos {
   const make = (src: { mp4: string; webm: string }) => {
     const v = document.createElement('video');
     v.playsInline = true;
     v.preload = 'auto';
+    v.muted = true;
     v.disablePictureInPicture = true;
     v.setAttribute('playsinline', '');
     v.setAttribute('aria-hidden', 'true');
     v.tabIndex = -1;
     v.className = 'absolute inset-0 w-full h-full object-cover transition-opacity duration-300 opacity-0';
-    for (const [url, type] of [[src.mp4, VIDEO_TYPE.mp4WithAudio], [src.webm, VIDEO_TYPE.webmWithAudio]] as const) {
+    for (const [url, type] of [[src.mp4, VIDEO_TYPE.mp4], [src.webm, VIDEO_TYPE.webm]] as const) {
       const s = document.createElement('source');
       s.src = url;
       s.type = type;
@@ -69,16 +68,6 @@ function createAttackVideos(): AttackVideos {
     return v;
   };
   return { normal: make(VIDEO.normal), special: make(VIDEO.special) };
-}
-
-function unlockAttackVideos(videos: AttackVideos | null) {
-  if (!videos) return;
-  for (const v of Object.values(videos)) {
-    if (v.dataset.unlocked) continue;
-    v.dataset.unlocked = '1';
-    v.muted = true;
-    v.play().then(() => { v.pause(); v.currentTime = 0; }).catch(() => { /* 失敗しても本番で無音再生にフォールバックする */ });
-  }
 }
 
 type Phase = 'INTRO' | 'BATTLE' | 'RESULT';
@@ -185,8 +174,7 @@ export const BossBattleModule: React.FC<Props> = ({ onExit }) => {
     if (el && videos) el.append(videos.normal, videos.special);
   }, []);
 
-  /* 攻撃が始まったらその動画を頭から流す（効果音オンなら音つき。音つき再生を断られたら無音で流す）。
-     攻撃が終わった・画面を離れたときは止めて、音が残らないようにする。 */
+  /* 攻撃が始まったらその動画を頭から流す（無音）。攻撃が終わった・画面を離れたときは止める。 */
   useEffect(() => {
     const videos = attackVideosRef.current;
     if (!videos) return;
@@ -194,13 +182,8 @@ export const BossBattleModule: React.FC<Props> = ({ onExit }) => {
       const v = videos[kind];
       if (phase === 'BATTLE' && attackPlaying === kind) {
         v.currentTime = 0;
-        v.volume = 0.8;
-        v.muted = !useSettingsStore.getState().soundEnabled;
         v.classList.replace('opacity-0', 'opacity-100');
-        v.play().catch(() => {
-          v.muted = true;
-          v.play().catch(() => { /* 再生できなくても 12秒後の保険タイマーで次へ進む */ });
-        });
+        v.play().catch(() => { /* 再生できなくても 12秒後の保険タイマーで次へ進む */ });
       } else {
         v.classList.replace('opacity-100', 'opacity-0');
         v.pause();
@@ -260,7 +243,6 @@ export const BossBattleModule: React.FC<Props> = ({ onExit }) => {
   }, [phase, tier]);
 
   const startBattle = (t: BossTier) => {
-    unlockAttackVideos(attackVideosRef.current); // ボタンのタップの中で呼ぶ（iOSで攻撃動画を音つきで流すため）
     const qs = pickBossQuestions(t, mastery);
     setTier(t);
     setQuestions(qs);
