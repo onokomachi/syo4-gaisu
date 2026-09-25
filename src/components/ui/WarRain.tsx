@@ -1,244 +1,360 @@
 /**
- * 戦争テーマ専用の背景：中世ファンタジー戦記の黄昏の戦場。
- * 燃えるような茜色の空の下、城壁のシルエットと はためく旗印、
- * 立ちのぼる灰の粉、天から差す金色の光条。実写的な武器・暴力表現は使わない。
- * theme === 'war' のときだけ描画する。
+ * 戦争テーマ専用の背景：炎の戦場をかける騎士たちの動画（sensou）を最背面に流し、
+ * その上に透明なcanvasで「火の粉（奥・中・手前の3層）」「たなびく煙」「足もとの炎の照り返し」
+ * 「天から差す光条」「ときどき散る火花」を重ねて、動画だけでは出ない奥行きと熱気を足す。
+ * theme === 'war' のときだけ描画し、それ以外のテーマでは動画を読み込みもしない。
+ *
+ * 軽さのための工夫:
+ * - 動画は480p・音声なしに圧縮したWebM（約1MB）を優先し、非対応ブラウザだけMP4（約0.9MB）を読む。
+ * - タブが裏に回ったら動画を止める。canvasは約30fpsに間引き、光の粒は事前に描いた画像を使い回す。
+ * - 「視差効果を減らす」設定の端末では、静止画だけにしてアニメーションを止める。
+ * - データセーバー／低速回線では、動画をやめて静止画＋canvas演出だけにする。
  */
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useSettingsStore } from '../../store/settingsStore';
 
-interface Ash {
+const VIDEO_WEBM = '/videos/war/sensou.webm';
+const VIDEO_MP4 = '/videos/war/sensou.mp4';
+const POSTER = '/videos/war/sensou-poster.jpg';
+
+/** 動画の明るい炎の上でも文字が読めるように暗く落とし、四隅をしぼって奥行きを出す。 */
+const GRADE_OVERLAY = [
+  'radial-gradient(ellipse at 50% 42%, rgba(20,6,0,0) 30%, rgba(8,2,0,0.72) 100%)',
+  'linear-gradient(to bottom, rgba(18,6,0,0.74) 0%, rgba(18,6,0,0.48) 38%, rgba(18,6,0,0.5) 70%, rgba(12,4,0,0.82) 100%)',
+].join(', ');
+
+type Mode = 'full' | 'lite' | 'still';
+
+type NetworkInfoLike = { saveData?: boolean; effectiveType?: string };
+
+function detectMode(): Mode {
+  if (typeof window === 'undefined') return 'full';
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return 'still';
+  const conn = (navigator as Navigator & { connection?: NetworkInfoLike }).connection;
+  if (conn?.saveData || conn?.effectiveType === 'slow-2g' || conn?.effectiveType === '2g') return 'lite';
+  return 'full';
+}
+
+/** 中心が白熱し、外へやわらかく消える光の粒。毎フレームのグラデーション生成を避けるため一度だけ描く。 */
+function makeGlowSprite(r: number, g: number, b: number): HTMLCanvasElement {
+  const size = 64;
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const x = c.getContext('2d');
+  if (x) {
+    const grad = x.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    grad.addColorStop(0, 'rgba(255, 250, 225, 1)');
+    grad.addColorStop(0.16, `rgba(${r}, ${g}, ${b}, 0.95)`);
+    grad.addColorStop(0.42, `rgba(${r}, ${g}, ${b}, 0.32)`);
+    grad.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+    x.fillStyle = grad;
+    x.fillRect(0, 0, size, size);
+  }
+  return c;
+}
+
+function makeSmokeSprite(): HTMLCanvasElement {
+  const size = 128;
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const x = c.getContext('2d');
+  if (x) {
+    const grad = x.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    grad.addColorStop(0, 'rgba(28, 14, 8, 0.9)');
+    grad.addColorStop(0.5, 'rgba(28, 14, 8, 0.45)');
+    grad.addColorStop(1, 'rgba(28, 14, 8, 0)');
+    x.fillStyle = grad;
+    x.fillRect(0, 0, size, size);
+  }
+  return c;
+}
+
+type Range = readonly [number, number];
+const rand = ([a, b]: Range) => a + Math.random() * (b - a);
+
+/** 火の粉の3層（奥＝小さく多く淡い／手前＝大きく少なくぼけた光）。 */
+const LAYERS = [
+  { share: 0.55, size: [3, 7], vy: [0.3, 0.8], drift: 0.25, swayAmp: 0.5, alpha: [0.35, 0.6], decay: [0.0015, 0.004] },
+  { share: 0.35, size: [6, 12], vy: [0.8, 1.8], drift: 0.45, swayAmp: 0.9, alpha: [0.55, 0.85], decay: [0.002, 0.005] },
+  { share: 0.1, size: [16, 30], vy: [1.5, 2.8], drift: 0.8, swayAmp: 1.4, alpha: [0.3, 0.55], decay: [0.003, 0.007] },
+] as const;
+
+interface Ember {
+  layer: 0 | 1 | 2;
   x: number;
   y: number;
-  r: number;
+  size: number;
   vy: number;
+  drift: number;
   sway: number;
   swaySpeed: number;
+  swayAmp: number;
+  alpha: number;
   life: number;
   decay: number;
-  heat: number;
+  flicker: number;
+  flickerSpeed: number;
+  sprite: 0 | 1;
 }
 
-interface Banner {
-  x: number;
-  poleH: number;
-  flagW: number;
-  flagH: number;
-  phase: number;
-  speed: number;
-  hue: 'crimson' | 'gold';
-}
+interface Smoke { x: number; y: number; r: number; vx: number; alpha: number; phase: number }
 
-/** 城壁・尖塔のシルエットのシルエット輪郭を1本のパスとして作る（横幅ぶん繰り返す） */
-function buildSkylinePath(width: number, baseY: number): { x: number; y: number }[] {
-  const pts: { x: number; y: number }[] = [{ x: 0, y: baseY }];
-  let x = 0;
-  let seed = 0;
-  while (x < width) {
-    seed++;
-    const kind = seed % 3;
-    if (kind === 0) {
-      // 尖塔（三角の屋根つき塔）
-      const w = 46 + Math.random() * 30;
-      const towerH = 60 + Math.random() * 70;
-      pts.push({ x, y: baseY - towerH * 0.55 });
-      pts.push({ x: x + w * 0.5, y: baseY - towerH });
-      pts.push({ x: x + w, y: baseY - towerH * 0.55 });
-      x += w;
-    } else if (kind === 1) {
-      // 城壁（凹凸の胸壁）
-      const segments = 3 + Math.floor(Math.random() * 3);
-      const segW = 18;
-      for (let i = 0; i < segments; i++) {
-        pts.push({ x, y: baseY - 34 });
-        pts.push({ x: x + segW * 0.55, y: baseY - 34 });
-        pts.push({ x: x + segW * 0.55, y: baseY - 14 });
-        pts.push({ x: x + segW, y: baseY - 14 });
-        x += segW;
-      }
-    } else {
-      // 低い建物
-      const w = 40 + Math.random() * 50;
-      const h = 20 + Math.random() * 30;
-      pts.push({ x, y: baseY - h });
-      pts.push({ x: x + w, y: baseY - h });
-      x += w;
-    }
-  }
-  pts.push({ x: width, y: baseY });
-  return pts;
-}
+interface Spark { x: number; y: number; vx: number; vy: number; life: number; decay: number }
+
+interface Burst { x: number; y: number; life: number }
 
 export const WarRain: React.FC = () => {
   const theme = useSettingsStore((s) => s.theme);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const rafRef = useRef<number>(0);
+  if (theme !== 'war') return null;
+  return <WarBackground />;
+};
 
+const WarBackground: React.FC = () => {
+  const [mode] = useState<Mode>(detectMode);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  /* 動画：ミュートを確実にかけてから再生（Reactのmuted属性だけだとiOSで自動再生されないことがある）。
+     タブが裏に回ったら止めて、戻ったら再開する。 */
   useEffect(() => {
-    if (theme !== 'war') return;
+    if (mode !== 'full') return;
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = true;
+    v.defaultMuted = true;
+    const play = () => { v.play().catch(() => { /* 自動再生が拒否されても静止画（poster）が残る */ }); };
+    const onVisibility = () => { if (document.hidden) v.pause(); else play(); };
+    play();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      v.pause();
+    };
+  }, [mode]);
+
+  /* canvas：動画の上に重ねる炎の演出 */
+  useEffect(() => {
+    if (mode === 'still') return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    let ashes: Ash[] = [];
-    let banners: Banner[] = [];
-    let skyline: { x: number; y: number }[] = [];
-    let skylineBaseY = 0;
+    const emberSprites = [makeGlowSprite(255, 150, 50), makeGlowSprite(255, 85, 25)];
+    const smokeSprite = makeSmokeSprite();
 
-    const spawnAsh = (): Ash => ({
-      x: Math.random() * canvas.width,
-      y: canvas.height + 10 + Math.random() * 60,
-      r: 1 + Math.random() * 2.4,
-      vy: 0.5 + Math.random() * 1.6,
-      sway: Math.random() * Math.PI * 2,
-      swaySpeed: 0.015 + Math.random() * 0.035,
-      life: 1,
-      decay: 0.0015 + Math.random() * 0.004,
-      heat: Math.random(),
-    });
+    let embers: Ember[] = [];
+    let smoke: Smoke[] = [];
+    let sparks: Spark[] = [];
+    let bursts: Burst[] = [];
+    let nextBurstAt = performance.now() + 1200;
+
+    const spawnEmber = (layer: 0 | 1 | 2, anywhere: boolean): Ember => {
+      const cfg = LAYERS[layer];
+      return {
+        layer,
+        x: Math.random() * canvas.width,
+        y: anywhere ? Math.random() * canvas.height : canvas.height + 20 + Math.random() * 40,
+        size: rand(cfg.size),
+        vy: rand(cfg.vy),
+        drift: (Math.random() - 0.3) * cfg.drift, // ゆるい横風（少し右へ流れる）
+        sway: Math.random() * Math.PI * 2,
+        swaySpeed: 0.02 + Math.random() * 0.04,
+        swayAmp: cfg.swayAmp * Math.random(),
+        alpha: rand(cfg.alpha),
+        life: anywhere ? Math.random() : 1,
+        decay: rand(cfg.decay),
+        flicker: Math.random() * Math.PI * 2,
+        flickerSpeed: 0.08 + Math.random() * 0.15,
+        sprite: Math.random() < 0.65 ? 0 : 1,
+      };
+    };
 
     const resize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      skylineBaseY = canvas.height * 0.86;
-      skyline = buildSkylinePath(canvas.width, skylineBaseY);
-
-      const ashCount = Math.min(150, Math.floor((canvas.width * canvas.height) / 9000));
-      ashes = Array.from({ length: ashCount }, () => {
-        const a = spawnAsh();
-        a.y = Math.random() * canvas.height;
-        a.life = Math.random();
-        return a;
+      const total = Math.min(160, Math.floor((canvas.width * canvas.height) / 8000));
+      embers = [];
+      LAYERS.forEach((cfg, i) => {
+        const n = Math.round(total * cfg.share);
+        for (let k = 0; k < n; k++) embers.push(spawnEmber(i as 0 | 1 | 2, true));
       });
-
-      const bannerCount = Math.max(3, Math.floor(canvas.width / 320));
-      banners = Array.from({ length: bannerCount }, (_, i) => ({
-        x: (canvas.width / bannerCount) * (i + 0.5) + (Math.random() - 0.5) * 100,
-        poleH: 70 + Math.random() * 50,
-        flagW: 40 + Math.random() * 20,
-        flagH: 22 + Math.random() * 10,
+      const big = Math.max(canvas.width, canvas.height);
+      smoke = Array.from({ length: 6 }, (_, i) => ({
+        x: Math.random() * canvas.width,
+        y: canvas.height * (i < 3 ? 0.05 + Math.random() * 0.3 : 0.6 + Math.random() * 0.35),
+        r: big * (0.25 + Math.random() * 0.2),
+        vx: (Math.random() < 0.5 ? -1 : 1) * (0.15 + Math.random() * 0.25),
+        alpha: 0.12 + Math.random() * 0.1,
         phase: Math.random() * Math.PI * 2,
-        speed: 0.0016 + Math.random() * 0.0012,
-        hue: Math.random() < 0.5 ? 'crimson' : 'gold',
       }));
     };
     resize();
     window.addEventListener('resize', resize);
 
+    const spawnBurst = () => {
+      const ox = canvas.width * (0.15 + Math.random() * 0.7);
+      const oy = canvas.height * (0.55 + Math.random() * 0.3);
+      const n = 16 + Math.floor(Math.random() * 14);
+      for (let i = 0; i < n; i++) {
+        const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.1; // ほぼ上向きに扇状
+        const speed = 3 + Math.random() * 7;
+        sparks.push({
+          x: ox, y: oy,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: 1,
+          decay: 0.03 + Math.random() * 0.03,
+        });
+      }
+      bursts.push({ x: ox, y: oy, life: 1 });
+    };
+
     let last = 0;
-    const interval = 33; // ~30fps
+    const interval = 33; // 約30fps
+    let raf = 0;
 
     const draw = (t: number) => {
-      rafRef.current = requestAnimationFrame(draw);
+      raf = requestAnimationFrame(draw);
       if (t - last < interval) return;
       last = t;
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
 
-      // 黄昏の戦場の空（上は暗い煙、下は燃えるような茜色）
-      const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      sky.addColorStop(0, '#0e0400');
-      sky.addColorStop(0.55, '#3a1204');
-      sky.addColorStop(0.82, '#7a2c08');
-      sky.addColorStop(1, '#c4540f');
-      ctx.fillStyle = sky;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // たなびく煙（通常合成で少しだけ暗くし、奥行きを出す）
+      for (const s of smoke) {
+        s.x += s.vx;
+        if (s.x - s.r > w) s.x = -s.r;
+        if (s.x + s.r < 0) s.x = w + s.r;
+        ctx.globalAlpha = s.alpha * (0.8 + 0.2 * Math.sin(t * 0.0005 + s.phase));
+        ctx.drawImage(smokeSprite, s.x - s.r, s.y - s.r, s.r * 2, s.r * 2);
+      }
+      ctx.globalAlpha = 1;
 
-      // 天からの金色の光条（薄く・まばらに）
       ctx.globalCompositeOperation = 'lighter';
-      const rayCount = 3;
-      for (let i = 0; i < rayCount; i++) {
-        const cx = canvas.width * (0.15 + (i / (rayCount - 1)) * 0.7);
-        const swing = Math.sin(t * 0.00025 + i * 2.1) * canvas.width * 0.04;
-        const a = 0.04 + Math.max(0, Math.sin(t * 0.0005 + i * 1.3)) * 0.05;
-        const w = canvas.width * 0.06;
-        const g = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.8);
+
+      // 足もとの炎の照り返し（ゆっくり脈打つ）
+      const pulse = 0.12 + Math.sin(t * 0.0013) * 0.04 + Math.sin(t * 0.0029) * 0.02;
+      const floor = ctx.createLinearGradient(0, h * 0.6, 0, h);
+      floor.addColorStop(0, 'rgba(255, 90, 10, 0)');
+      floor.addColorStop(1, `rgba(255, 110, 20, ${pulse})`);
+      ctx.fillStyle = floor;
+      ctx.fillRect(0, h * 0.6, w, h * 0.4);
+      const big = Math.max(w, h);
+      for (let i = 0; i < 2; i++) {
+        const cx = w * (0.25 + 0.5 * i) + Math.sin(t * 0.0002 + i * 2) * w * 0.08;
+        const cy = h * 1.02;
+        const R = big * 0.45;
+        const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
+        g.addColorStop(0, `rgba(255, 120, 30, ${pulse * 0.9})`);
+        g.addColorStop(1, 'rgba(255, 120, 30, 0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(cx - R, cy - R, R * 2, R * 2);
+      }
+
+      // 天から差す光条（動画が明るいので控えめに）
+      for (let i = 0; i < 3; i++) {
+        const cx = w * (0.15 + i * 0.35);
+        const swing = Math.sin(t * 0.00025 + i * 2.1) * w * 0.04;
+        const a = 0.02 + Math.max(0, Math.sin(t * 0.0005 + i * 1.3)) * 0.035;
+        const rw = w * 0.06;
+        const g = ctx.createLinearGradient(0, 0, 0, h * 0.8);
         g.addColorStop(0, `rgba(255, 200, 110, ${a})`);
         g.addColorStop(1, 'rgba(255, 160, 60, 0)');
         ctx.fillStyle = g;
         ctx.beginPath();
-        ctx.moveTo(cx - w * 0.3 + swing, 0);
-        ctx.lineTo(cx + w * 0.3 + swing, 0);
-        ctx.lineTo(cx + w + swing * 1.3, canvas.height * 0.8);
-        ctx.lineTo(cx - w + swing * 1.3, canvas.height * 0.8);
+        ctx.moveTo(cx - rw * 0.3 + swing, 0);
+        ctx.lineTo(cx + rw * 0.3 + swing, 0);
+        ctx.lineTo(cx + rw + swing * 1.3, h * 0.8);
+        ctx.lineTo(cx - rw + swing * 1.3, h * 0.8);
         ctx.closePath();
         ctx.fill();
       }
-      ctx.globalCompositeOperation = 'source-over';
 
-      // 遠くの城壁・尖塔のシルエット
-      ctx.beginPath();
-      ctx.moveTo(skyline[0].x, canvas.height);
-      for (const p of skyline) ctx.lineTo(p.x, p.y);
-      ctx.lineTo(canvas.width, canvas.height);
-      ctx.closePath();
-      const silhouette = ctx.createLinearGradient(0, skylineBaseY - 120, 0, skylineBaseY);
-      silhouette.addColorStop(0, 'rgba(15, 5, 2, 0.96)');
-      silhouette.addColorStop(1, 'rgba(30, 10, 3, 0.98)');
-      ctx.fillStyle = silhouette;
-      ctx.fill();
-
-      // 旗印（はためく旗）
-      for (const b of banners) {
-        const baseY = skylineBaseY - 10;
-        const topY = baseY - b.poleH;
-        // 旗ざお
-        ctx.strokeStyle = 'rgba(20, 8, 3, 0.9)';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(b.x, baseY);
-        ctx.lineTo(b.x, topY);
-        ctx.stroke();
-        // 旗（風になびく波形の右端）
-        const wave = t * b.speed + b.phase;
-        ctx.beginPath();
-        ctx.moveTo(b.x, topY);
-        ctx.lineTo(b.x, topY + b.flagH);
-        const steps = 5;
-        for (let i = steps; i >= 0; i--) {
-          const fx = b.x + (b.flagW * i) / steps;
-          const fy = topY + b.flagH * 0.5 + Math.sin(wave + i * 0.9) * (b.flagH * 0.35) * (i / steps);
-          ctx.lineTo(fx, fy);
+      // 火の粉（3層）
+      for (const e of embers) {
+        e.sway += e.swaySpeed;
+        e.flicker += e.flickerSpeed;
+        e.x += e.drift + Math.sin(e.sway) * e.swayAmp;
+        e.y -= e.vy;
+        e.life -= e.decay;
+        if (e.life <= 0 || e.y < -40) {
+          Object.assign(e, spawnEmber(e.layer, false));
+          continue;
         }
-        ctx.closePath();
-        ctx.fillStyle = b.hue === 'crimson' ? 'rgba(180, 30, 20, 0.85)' : 'rgba(220, 160, 40, 0.85)';
-        ctx.fill();
+        const fadeIn = Math.min(1, (1 - e.life) * 8);
+        const fadeOut = e.life < 0.25 ? e.life / 0.25 : 1;
+        ctx.globalAlpha = e.alpha * fadeIn * fadeOut * (0.75 + 0.25 * Math.sin(e.flicker));
+        ctx.drawImage(emberSprites[e.sprite], e.x - e.size / 2, e.y - e.size / 2, e.size, e.size);
       }
 
-      // 立ちのぼる灰・火の粉
-      ctx.globalCompositeOperation = 'lighter';
-      for (const a of ashes) {
-        a.sway += a.swaySpeed;
-        a.x += Math.sin(a.sway) * 0.6;
-        a.y -= a.vy;
-        a.life -= a.decay;
-        if (a.life <= 0 || a.y < -10) Object.assign(a, spawnAsh());
-        const alpha = Math.max(0, a.life) * 0.75;
-        const r = 255;
-        const g = Math.round(140 + a.heat * 90);
-        const bch = Math.round(60 + a.heat * 60);
-        ctx.beginPath();
-        ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${r}, ${g}, ${bch}, ${alpha})`;
-        ctx.fill();
+      // ときどき散る火花（剣がぶつかったような一瞬のきらめき）
+      if (t >= nextBurstAt) {
+        spawnBurst();
+        nextBurstAt = t + 2200 + Math.random() * 2600;
       }
+      for (const b of bursts) {
+        b.life -= 0.12;
+        if (b.life <= 0) continue;
+        const R = 70 * b.life + 30;
+        ctx.globalAlpha = b.life * 0.6;
+        ctx.drawImage(emberSprites[0], b.x - R, b.y - R, R * 2, R * 2);
+      }
+      bursts = bursts.filter((b) => b.life > 0);
+      ctx.globalAlpha = 1;
+      ctx.lineCap = 'round';
+      for (const s of sparks) {
+        s.x += s.vx;
+        s.y += s.vy;
+        s.vy += 0.18;
+        s.vx *= 0.98;
+        s.life -= s.decay;
+        if (s.life <= 0) continue;
+        ctx.strokeStyle = `rgba(255, 220, 150, ${s.life})`;
+        ctx.lineWidth = 1.2 + s.life;
+        ctx.beginPath();
+        ctx.moveTo(s.x - s.vx * 1.6, s.y - s.vy * 1.6);
+        ctx.lineTo(s.x, s.y);
+        ctx.stroke();
+      }
+      sparks = sparks.filter((s) => s.life > 0);
+
+      ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = 'source-over';
     };
-    rafRef.current = requestAnimationFrame(draw);
+    raf = requestAnimationFrame(draw);
 
     return () => {
-      cancelAnimationFrame(rafRef.current);
+      cancelAnimationFrame(raf);
       window.removeEventListener('resize', resize);
     };
-  }, [theme]);
-
-  if (theme !== 'war') return null;
+  }, [mode]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      aria-hidden
-      className="fixed inset-0 pointer-events-none z-0 opacity-85"
-      style={{ willChange: 'transform', transform: 'translateZ(0)' }}
-    />
+    <div aria-hidden className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+      {mode === 'full' ? (
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          poster={POSTER}
+          disablePictureInPicture
+          disableRemotePlayback
+          tabIndex={-1}
+          className="absolute inset-0 w-full h-full object-cover"
+        >
+          <source src={VIDEO_WEBM} type="video/webm" />
+          <source src={VIDEO_MP4} type="video/mp4" />
+        </video>
+      ) : (
+        <img src={POSTER} alt="" className="absolute inset-0 w-full h-full object-cover" />
+      )}
+      <div className="absolute inset-0" style={{ background: GRADE_OVERLAY }} />
+      {mode !== 'still' && <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />}
+    </div>
   );
 };
