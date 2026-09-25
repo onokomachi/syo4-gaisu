@@ -12,28 +12,19 @@
  */
 import React, { useEffect, useRef, useState } from 'react';
 import { useSettingsStore } from '../../store/settingsStore';
+import { BgMode, ThemeVideo, VideoSources, detectBgMode } from './ThemeVideo';
 
-const VIDEO_WEBM = '/videos/war/sensou.webm';
-const VIDEO_MP4 = '/videos/war/sensou.mp4';
-const POSTER = '/videos/war/sensou-poster.jpg';
+const VIDEO: VideoSources = {
+  webm: '/videos/war/sensou.webm',
+  mp4: '/videos/war/sensou.mp4',
+  poster: '/videos/war/sensou-poster.jpg',
+};
 
 /** 動画の明るい炎の上でも文字が読めるように暗く落とし、四隅をしぼって奥行きを出す。 */
 const GRADE_OVERLAY = [
   'radial-gradient(ellipse at 50% 42%, rgba(20,6,0,0) 30%, rgba(8,2,0,0.72) 100%)',
   'linear-gradient(to bottom, rgba(18,6,0,0.74) 0%, rgba(18,6,0,0.48) 38%, rgba(18,6,0,0.5) 70%, rgba(12,4,0,0.82) 100%)',
 ].join(', ');
-
-type Mode = 'full' | 'lite' | 'still';
-
-type NetworkInfoLike = { saveData?: boolean; effectiveType?: string };
-
-function detectMode(): Mode {
-  if (typeof window === 'undefined') return 'full';
-  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return 'still';
-  const conn = (navigator as Navigator & { connection?: NetworkInfoLike }).connection;
-  if (conn?.saveData || conn?.effectiveType === 'slow-2g' || conn?.effectiveType === '2g') return 'lite';
-  return 'full';
-}
 
 /** 中心が白熱し、外へやわらかく消える光の粒。毎フレームのグラデーション生成を避けるため一度だけ描く。 */
 function makeGlowSprite(r: number, g: number, b: number): HTMLCanvasElement {
@@ -110,27 +101,8 @@ export const WarRain: React.FC = () => {
 };
 
 const WarBackground: React.FC = () => {
-  const [mode] = useState<Mode>(detectMode);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [mode] = useState<BgMode>(detectBgMode);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
-  /* 動画：ミュートを確実にかけてから再生（Reactのmuted属性だけだとiOSで自動再生されないことがある）。
-     タブが裏に回ったら止めて、戻ったら再開する。 */
-  useEffect(() => {
-    if (mode !== 'full') return;
-    const v = videoRef.current;
-    if (!v) return;
-    v.muted = true;
-    v.defaultMuted = true;
-    const play = () => { v.play().catch(() => { /* 自動再生が拒否されても静止画（poster）が残る */ }); };
-    const onVisibility = () => { if (document.hidden) v.pause(); else play(); };
-    play();
-    document.addEventListener('visibilitychange', onVisibility);
-    return () => {
-      document.removeEventListener('visibilitychange', onVisibility);
-      v.pause();
-    };
-  }, [mode]);
 
   /* canvas：動画の上に重ねる炎の演出 */
   useEffect(() => {
@@ -333,26 +305,7 @@ const WarBackground: React.FC = () => {
 
   return (
     <div aria-hidden className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-      {mode === 'full' ? (
-        <video
-          ref={videoRef}
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          poster={POSTER}
-          disablePictureInPicture
-          disableRemotePlayback
-          tabIndex={-1}
-          className="absolute inset-0 w-full h-full object-cover"
-        >
-          <source src={VIDEO_WEBM} type="video/webm" />
-          <source src={VIDEO_MP4} type="video/mp4" />
-        </video>
-      ) : (
-        <img src={POSTER} alt="" className="absolute inset-0 w-full h-full object-cover" />
-      )}
+      <ThemeVideo src={VIDEO} mode={mode} />
       <div className="absolute inset-0" style={{ background: GRADE_OVERLAY }} />
       {mode !== 'still' && <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />}
     </div>

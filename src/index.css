@@ -176,10 +176,10 @@
     text-shadow: 0 0 5px rgba(0, 220, 255, 0.5), 0 0 14px rgba(0, 220, 255, 0.25);
     letter-spacing: 0.04em;
   }
-  /* 冥界神：紫紅の妖しい発光 */
+  /* 冥界神：紫紅の妖しい発光（背景が動画なので、黒い影を先に敷いて文字の輪郭を保つ） */
   body[data-theme='netherworld'] {
     font-family: "BIZ UDPGothic", "Inter", ui-sans-serif, sans-serif;
-    text-shadow: 0 0 5px rgba(190, 60, 255, 0.5), 0 0 14px rgba(140, 20, 200, 0.3);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 5px rgba(190, 60, 255, 0.5), 0 0 14px rgba(140, 20, 200, 0.3);
     letter-spacing: 0.03em;
   }
 }

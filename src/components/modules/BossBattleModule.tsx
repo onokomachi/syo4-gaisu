@@ -1,6 +1,7 @@
 /**
  * ボス戦モード（スピードワールド限定・スペシャルステージ）。
- * 「天空神」（ゼウスのような雷の神）と、RPS風の2本立てシステムで戦う。
+ * 闇の雷をあやつる「冥界神」と、RPS風の2本立てシステムで戦う。
+ * 動画は 待機（無音でループ）／通常攻撃／ため技攻撃 の3本。攻撃の2本は効果音オンのときだけ音を出す。
  * - ボスは プレイヤーの解答状況と無関係に、難易度ごとの一定間隔で行動ゲージが満ちて
  *   通常攻撃／タメ攻撃（必殺技・予告あり）を自動発動する。
  * - プレイヤーは問題に正解すると「アクションポイント」を獲得し、貯めた分をいつでも使って
@@ -8,13 +9,15 @@
  * 出題は本番テストと同じ大問プールから、苦手なスキルほど出やすいように重みづけして選ぶ。
  * Normal / Hard / GOD の3ティアで、ボスの行動間隔・タメ攻撃の頻度・ダメージ量が変わる。
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
 import {
-  ChevronLeft, Cloud, Heart, Home, Lock, RotateCcw, Shield, ShieldCheck, Skull, Swords, Trophy, Zap,
+  ChevronLeft, Heart, Home, Lock, Orbit, RotateCcw, Shield, ShieldCheck, Skull, Swords, Trophy, Zap,
 } from 'lucide-react';
 import { useProgressStore } from '../../store/progressStore';
+import { useSettingsStore } from '../../store/settingsStore';
+import { VIDEO_TYPE } from '../ui/ThemeVideo';
 import { useBadgeRatio } from '../../lib/useBadgeRatio';
 import { THEME_UNLOCK, isThemeUnlocked } from '../../lib/themeUnlock';
 import {
@@ -31,12 +34,52 @@ import { RoundJudgeRound } from './RoundJudgeModule';
 
 interface Props { onExit: () => void; }
 
-const BOSS_NAME = '天空神';
+const BOSS_NAME = '冥界神';
+/** 同じ画質なら MP4 のほうが小さいので MP4 を先に、再生できないブラウザだけ WebM を読む。 */
 const VIDEO = {
-  idle: '/videos/boss/idle.mp4',
-  normal: '/videos/boss/attack-normal.mp4',
-  special: '/videos/boss/attack-special.mp4',
+  idle: { mp4: '/videos/boss/idle.mp4', webm: '/videos/boss/idle.webm' },
+  normal: { mp4: '/videos/boss/attack-normal.mp4', webm: '/videos/boss/attack-normal.webm' },
+  special: { mp4: '/videos/boss/attack-special.mp4', webm: '/videos/boss/attack-special.webm' },
 };
+const IDLE_POSTER = '/videos/boss/idle-poster.jpg';
+type AttackVideos = Record<'normal' | 'special', HTMLVideoElement>;
+
+/**
+ * 攻撃動画の <video> は画面（INTRO／BATTLE／RESULT）をまたいで同じ要素を使い回すため、Reactの外で1回だけ作る。
+ * - 最初から preload しておき、攻撃が始まった瞬間に読み込み待ちなしで流せるようにする。
+ * - iOS Safari は「ユーザーのタップの中で一度 play() された要素」でないと音つきで再生できないので、
+ *   ティアを選ぶボタンのタップ時に unlockAttackVideos() で一度だけ無音再生→停止しておく。
+ */
+function createAttackVideos(): AttackVideos {
+  const make = (src: { mp4: string; webm: string }) => {
+    const v = document.createElement('video');
+    v.playsInline = true;
+    v.preload = 'auto';
+    v.disablePictureInPicture = true;
+    v.setAttribute('playsinline', '');
+    v.setAttribute('aria-hidden', 'true');
+    v.tabIndex = -1;
+    v.className = 'absolute inset-0 w-full h-full object-cover transition-opacity duration-300 opacity-0';
+    for (const [url, type] of [[src.mp4, VIDEO_TYPE.mp4WithAudio], [src.webm, VIDEO_TYPE.webmWithAudio]] as const) {
+      const s = document.createElement('source');
+      s.src = url;
+      s.type = type;
+      v.appendChild(s);
+    }
+    return v;
+  };
+  return { normal: make(VIDEO.normal), special: make(VIDEO.special) };
+}
+
+function unlockAttackVideos(videos: AttackVideos | null) {
+  if (!videos) return;
+  for (const v of Object.values(videos)) {
+    if (v.dataset.unlocked) continue;
+    v.dataset.unlocked = '1';
+    v.muted = true;
+    v.play().then(() => { v.pause(); v.currentTime = 0; }).catch(() => { /* 失敗しても本番で無音再生にフォールバックする */ });
+  }
+}
 
 type Phase = 'INTRO' | 'BATTLE' | 'RESULT';
 type AttackKind = 'normal' | 'special' | null;
@@ -113,6 +156,58 @@ export const BossBattleModule: React.FC<Props> = ({ onExit }) => {
   const liveRef = useRef({ phase, guardActive, playerHp, attackPlaying });
   liveRef.current = { phase, guardActive, playerHp, attackPlaying };
 
+  /* 攻撃動画：マウント時に作って先読みしておき、BATTLE画面の動画レイヤーに差し込んで使う */
+  const attackVideosRef = useRef<AttackVideos | null>(null);
+  const onAttackEndedRef = useRef<() => void>(() => {});
+  onAttackEndedRef.current = () => {
+    setAttackPlaying(null);
+    if (liveRef.current.playerHp <= 0) finishBattle(false);
+  };
+  useEffect(() => {
+    const videos = createAttackVideos();
+    attackVideosRef.current = videos;
+    const onEnded = () => onAttackEndedRef.current();
+    for (const v of Object.values(videos)) {
+      v.addEventListener('ended', onEnded);
+      v.load();
+    }
+    return () => {
+      for (const v of Object.values(videos)) {
+        v.removeEventListener('ended', onEnded);
+        v.pause();
+        v.remove();
+      }
+      attackVideosRef.current = null;
+    };
+  }, []);
+  const attachAttackVideos = useCallback((el: HTMLDivElement | null) => {
+    const videos = attackVideosRef.current;
+    if (el && videos) el.append(videos.normal, videos.special);
+  }, []);
+
+  /* 攻撃が始まったらその動画を頭から流す（効果音オンなら音つき。音つき再生を断られたら無音で流す）。
+     攻撃が終わった・画面を離れたときは止めて、音が残らないようにする。 */
+  useEffect(() => {
+    const videos = attackVideosRef.current;
+    if (!videos) return;
+    for (const kind of ['normal', 'special'] as const) {
+      const v = videos[kind];
+      if (phase === 'BATTLE' && attackPlaying === kind) {
+        v.currentTime = 0;
+        v.volume = 0.8;
+        v.muted = !useSettingsStore.getState().soundEnabled;
+        v.classList.replace('opacity-0', 'opacity-100');
+        v.play().catch(() => {
+          v.muted = true;
+          v.play().catch(() => { /* 再生できなくても 12秒後の保険タイマーで次へ進む */ });
+        });
+      } else {
+        v.classList.replace('opacity-100', 'opacity-0');
+        v.pause();
+      }
+    }
+  }, [attackPlaying, phase]);
+
   const config = BOSS_TIERS[tier];
   const q = questions[qIndex];
 
@@ -165,6 +260,7 @@ export const BossBattleModule: React.FC<Props> = ({ onExit }) => {
   }, [phase, tier]);
 
   const startBattle = (t: BossTier) => {
+    unlockAttackVideos(attackVideosRef.current); // ボタンのタップの中で呼ぶ（iOSで攻撃動画を音つきで流すため）
     const qs = pickBossQuestions(t, mastery);
     setTier(t);
     setQuestions(qs);
@@ -279,11 +375,11 @@ export const BossBattleModule: React.FC<Props> = ({ onExit }) => {
           </button>
 
           <div className="text-center mt-4 mb-8">
-            <div className="w-24 h-24 rounded-3xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center mx-auto mb-4 ring-2 ring-cyan-400/40">
-              <Cloud size={48} />
+            <div className="w-24 h-24 rounded-3xl bg-purple-500/20 text-purple-300 flex items-center justify-center mx-auto mb-4 ring-2 ring-purple-400/40">
+              <Orbit size={48} />
             </div>
             <h1 className="text-3xl font-black text-white mb-2">ボス戦：{BOSS_NAME}</h1>
-            <p className="text-white/70 font-bold">雷を まとった 天空神と、正解で貯めたポイントを つかって たたかおう！</p>
+            <p className="text-white/70 font-bold">闇の雷を あやつる {BOSS_NAME}と、正解で貯めたポイントを つかって たたかおう！</p>
           </div>
 
           {!unlocked && (
@@ -338,7 +434,7 @@ export const BossBattleModule: React.FC<Props> = ({ onExit }) => {
             {win ? `${config.label} クリア！ すごい実力だ！` : 'おしい！ もう一度 ちょうせんしてみよう。'}
           </p>
           <div className="flex flex-col gap-3">
-            <button onClick={() => startBattle(tier)} className="flex items-center justify-center gap-2 py-4 bg-cyan-500 hover:bg-cyan-600 text-white rounded-2xl font-black text-lg shadow-lg transition-all active:scale-95">
+            <button onClick={() => startBattle(tier)} className="flex items-center justify-center gap-2 py-4 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl font-black text-lg shadow-lg transition-all active:scale-95">
               <RotateCcw size={20} /> もういちど（{config.label}）
             </button>
             <button onClick={() => setPhase('INTRO')} className="flex items-center justify-center gap-2 py-4 bg-white/10 hover:bg-white/15 text-white rounded-2xl font-black text-lg transition-all active:scale-95">
@@ -379,26 +475,11 @@ export const BossBattleModule: React.FC<Props> = ({ onExit }) => {
   return (
     <div className="relative w-full h-full overflow-hidden bg-black select-none">
       {/* ボス動画レイヤー */}
-      <video src={VIDEO.idle} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover" />
-      <AnimatePresence>
-        {attackPlaying && (
-          <motion.video
-            key={attackPlaying}
-            src={attackPlaying === 'special' ? VIDEO.special : VIDEO.normal}
-            autoPlay
-            muted
-            playsInline
-            onEnded={() => {
-              setAttackPlaying(null);
-              if (liveRef.current.playerHp <= 0) finishBattle(false);
-            }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-        )}
-      </AnimatePresence>
+      <video autoPlay loop muted playsInline preload="auto" poster={IDLE_POSTER} disablePictureInPicture tabIndex={-1} className="absolute inset-0 w-full h-full object-cover">
+        <source src={VIDEO.idle.mp4} type={VIDEO_TYPE.mp4} />
+        <source src={VIDEO.idle.webm} type={VIDEO_TYPE.webm} />
+      </video>
+      <div ref={attachAttackVideos} className="absolute inset-0 pointer-events-none" />
 
       {/* 残り時間が少ないときの琥珀色ビネット（このもんだいの締め切りを知らせる。被弾とは無関係） */}
       {urgent && !attackPlaying && (
@@ -418,7 +499,7 @@ export const BossBattleModule: React.FC<Props> = ({ onExit }) => {
               </button>
               <span className="text-white/80 font-black text-xs">{config.label}　{questionsExhausted ? 'もんだい終了' : `${qIndex + 1}/${questions.length}問`}</span>
             </div>
-            <HpBar label={BOSS_NAME} hp={bossHp} max={config.hp} color="bg-gradient-to-r from-cyan-400 to-indigo-500" icon={<Cloud size={16} />} />
+            <HpBar label={BOSS_NAME} hp={bossHp} max={config.hp} color="bg-gradient-to-r from-fuchsia-500 to-purple-600" icon={<Orbit size={16} />} />
             <div>
               <div className="h-1.5 rounded-full bg-black/40 overflow-hidden">
                 <div
@@ -443,7 +524,7 @@ export const BossBattleModule: React.FC<Props> = ({ onExit }) => {
                   }`}
                 >
                   <Zap size={16} />
-                  {bossTelegraph === 'charge' ? '天空神が 必殺技を ためている！ ガードで そなえよう！' : '天空神が 力を ためている…'}
+                  {bossTelegraph === 'charge' ? `${BOSS_NAME}が 必殺技を ためている！ ガードで そなえよう！` : `${BOSS_NAME}が 力を ためている…`}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -502,7 +583,7 @@ export const BossBattleModule: React.FC<Props> = ({ onExit }) => {
             {questionsExhausted && (
               <div className="bg-surface/95 backdrop-blur-md rounded-[26px] shadow-2xl border border-line p-6 text-center shrink-0">
                 <p className="font-black text-content mb-1">もんだいは ぜんぶ といた！</p>
-                <p className="text-sm text-muted font-bold">のこった ポイントを つかって、天空神を たおそう！</p>
+                <p className="text-sm text-muted font-bold">のこった ポイントを つかって、{BOSS_NAME}を たおそう！</p>
               </div>
             )}
           </div>

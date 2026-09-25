@@ -58,12 +58,17 @@ export default function App() {
 
   return (
     <div className="w-full h-screen overflow-hidden select-none bg-bg">
-      {/* テーマ別の動く背景（各コンポーネントが自分のテーマ以外では何も描画しない） */}
-      <MatrixRain />
-      <SakuraRain />
-      <WarRain />
-      <SpeedWorldRain />
-      <NetherworldRain />
+      {/* テーマ別の動く背景（各コンポーネントが自分のテーマ以外では何も描画しない）。
+          ボス戦は画面全体を自前の動画でおおうので、見えない背景の動画・アニメーションは止めておく。 */}
+      {view.kind !== 'BOSS' && (
+        <>
+          <MatrixRain />
+          <SakuraRain />
+          <WarRain />
+          <SpeedWorldRain />
+          <NetherworldRain />
+        </>
+      )}
 
       <div className="relative z-10 w-full h-full">
         <AnimatePresence mode="wait">
