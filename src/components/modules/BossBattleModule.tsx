@@ -1,7 +1,7 @@
 /**
  * ボス戦モード（スピードワールド限定・スペシャルステージ）。
  * 闇の雷をあやつる「冥界神」と、RPS風の2本立てシステムで戦う。
- * 動画は 待機／通常攻撃／ため技攻撃 の3本。すべて無音（音声トラックを持たない）。
+ * 動画は 待機／通常攻撃／ため技攻撃 の3本。音が出るのは ため技攻撃だけで、効果音オンのときに限る。
  * - ボスは プレイヤーの解答状況と無関係に、難易度ごとの一定間隔で行動ゲージが満ちて
  *   通常攻撃／タメ攻撃（必殺技・予告あり）を自動発動する。
  * - プレイヤーは問題に正解すると「アクションポイント」を獲得し、貯めた分をいつでも使って
@@ -16,6 +16,7 @@ import {
   ChevronLeft, Heart, Home, Lock, Orbit, RotateCcw, Shield, ShieldCheck, Skull, Swords, Trophy, Zap,
 } from 'lucide-react';
 import { useProgressStore } from '../../store/progressStore';
+import { useSettingsStore } from '../../store/settingsStore';
 import { VIDEO_TYPE } from '../ui/ThemeVideo';
 import { useBadgeRatio } from '../../lib/useBadgeRatio';
 import { THEME_UNLOCK, isThemeUnlocked } from '../../lib/themeUnlock';
@@ -46,10 +47,10 @@ type AttackVideos = Record<'normal' | 'special', HTMLVideoElement>;
 /**
  * 攻撃動画の <video> は画面（INTRO／BATTLE／RESULT）をまたいで同じ要素を使い回すため、Reactの外で1回だけ作る。
  * 最初から preload しておき、攻撃が始まった瞬間に読み込み待ちなしで流せるようにする。
- * 動画は音声トラックを持たないが、念のため muted も付けておく（自動再生のブロック対策）。
+ * 通常攻撃は音声トラックを持たない。ため技攻撃だけ音声があり、再生するときに効果音の設定で muted を切り替える。
  */
 function createAttackVideos(): AttackVideos {
-  const make = (src: { mp4: string; webm: string }) => {
+  const make = (src: { mp4: string; webm: string }, withAudio: boolean) => {
     const v = document.createElement('video');
     v.playsInline = true;
     v.preload = 'auto';
@@ -59,7 +60,8 @@ function createAttackVideos(): AttackVideos {
     v.setAttribute('aria-hidden', 'true');
     v.tabIndex = -1;
     v.className = 'absolute inset-0 w-full h-full object-cover transition-opacity duration-300 opacity-0';
-    for (const [url, type] of [[src.mp4, VIDEO_TYPE.mp4], [src.webm, VIDEO_TYPE.webm]] as const) {
+    const types = withAudio ? [VIDEO_TYPE.mp4WithAudio, VIDEO_TYPE.webmWithAudio] : [VIDEO_TYPE.mp4, VIDEO_TYPE.webm];
+    for (const [url, type] of [[src.mp4, types[0]], [src.webm, types[1]]] as const) {
       const s = document.createElement('source');
       s.src = url;
       s.type = type;
@@ -67,7 +69,19 @@ function createAttackVideos(): AttackVideos {
     }
     return v;
   };
-  return { normal: make(VIDEO.normal), special: make(VIDEO.special) };
+  return { normal: make(VIDEO.normal, false), special: make(VIDEO.special, true) };
+}
+
+/**
+ * iOS Safari は「ユーザーのタップの中で一度 play() された要素」でないと音つきで再生できない。
+ * ティアを選ぶボタンのタップのときに、ため技の動画を一度だけ無音で再生→停止しておく。
+ */
+function unlockSpecialVideo(videos: AttackVideos | null) {
+  const v = videos?.special;
+  if (!v || v.dataset.unlocked) return;
+  v.dataset.unlocked = '1';
+  v.muted = true;
+  v.play().then(() => { v.pause(); v.currentTime = 0; }).catch(() => { /* 失敗しても本番は無音で流せる */ });
 }
 
 type Phase = 'INTRO' | 'BATTLE' | 'RESULT';
@@ -176,7 +190,8 @@ export const BossBattleModule: React.FC<Props> = ({ onExit }) => {
     if (el && videos) el.append(videos.normal, videos.special);
   }, []);
 
-  /* 攻撃が始まったらその動画を頭から流す（無音）。攻撃が終わった・画面を離れたときは止める。 */
+  /* 攻撃が始まったらその動画を頭から流す。ため技は効果音オンなら音つき（音つきを断られたら無音で流す）。
+     攻撃が終わった・画面を離れたときは止めて、音が残らないようにする。 */
   useEffect(() => {
     const videos = attackVideosRef.current;
     if (!videos) return;
@@ -184,8 +199,12 @@ export const BossBattleModule: React.FC<Props> = ({ onExit }) => {
       const v = videos[kind];
       if (phase === 'BATTLE' && attackPlaying === kind) {
         v.currentTime = 0;
+        v.muted = kind !== 'special' || !useSettingsStore.getState().soundEnabled;
         v.classList.replace('opacity-0', 'opacity-100');
-        v.play().catch(() => { /* 再生できなくても 12秒後の保険タイマーで次へ進む */ });
+        v.play().catch(() => {
+          v.muted = true;
+          v.play().catch(() => { /* 再生できなくても 12秒後の保険タイマーで次へ進む */ });
+        });
       } else {
         v.classList.replace('opacity-100', 'opacity-0');
         v.pause();
@@ -247,6 +266,7 @@ export const BossBattleModule: React.FC<Props> = ({ onExit }) => {
   }, [phase, tier]);
 
   const startBattle = (t: BossTier) => {
+    unlockSpecialVideo(attackVideosRef.current); // ボタンのタップの中で呼ぶ（iOSでため技を音つきで流すため）
     const qs = pickBossQuestions(t, mastery);
     setTier(t);
     setQuestions(qs);
