@@ -35,38 +35,38 @@ export function computeBadges(d: BadgeData): Badge[] {
   const list: Badge[] = [
     { id: 'first', title: 'はじめの一歩', desc: '1問 クリア', icon: 'Star', earned: d.totalCorrect >= 1 },
     // がんばり（累計クリア数）
-    { id: 't20', title: 'がんばり20', desc: '累計20問 クリア', icon: 'Sparkles', earned: d.totalCorrect >= 20 },
-    { id: 't30', title: 'がんばり30', desc: '累計30問 クリア', icon: 'Medal', earned: d.totalCorrect >= 30 },
-    { id: 't50', title: 'がんばり50', desc: '累計50問 クリア', icon: 'Award', earned: d.totalCorrect >= 50 },
-    { id: 't100', title: 'がんばり100', desc: '累計100問 クリア', icon: 'Trophy', earned: d.totalCorrect >= 100 },
+    { id: 't10', title: 'がんばり10', desc: '累計10問 クリア', icon: 'Sparkles', earned: d.totalCorrect >= 10 },
+    { id: 't20', title: 'がんばり20', desc: '累計20問 クリア', icon: 'Medal', earned: d.totalCorrect >= 20 },
+    { id: 't40', title: 'がんばり40', desc: '累計40問 クリア', icon: 'Award', earned: d.totalCorrect >= 40 },
+    { id: 't70', title: 'がんばり70', desc: '累計70問 クリア', icon: 'Trophy', earned: d.totalCorrect >= 70 },
     // ノーミス（連続ノーミス記録）
-    { id: 's5', title: 'ノーミス5', desc: '5問連続 ノーミス', icon: 'Flame', earned: d.maxStreak >= 5 },
-    { id: 's10', title: 'ノーミス10', desc: '10問連続 ノーミス', icon: 'Crown', earned: d.maxStreak >= 10 },
-    { id: 's20', title: 'ノーミス20', desc: '20問連続 ノーミス', icon: 'Zap', earned: d.maxStreak >= 20 },
-    { id: 's30', title: 'ノーミス30', desc: '30問連続 ノーミス', icon: 'Target', earned: d.maxStreak >= 30 },
-    { id: 's50', title: 'ノーミス50', desc: '50問連続 ノーミス', icon: 'Rocket', earned: d.maxStreak >= 50 },
+    { id: 's3', title: 'ノーミス3', desc: '3問連続 ノーミス', icon: 'Flame', earned: d.maxStreak >= 3 },
+    { id: 's5', title: 'ノーミス5', desc: '5問連続 ノーミス', icon: 'Crown', earned: d.maxStreak >= 5 },
+    { id: 's10', title: 'ノーミス10', desc: '10問連続 ノーミス', icon: 'Zap', earned: d.maxStreak >= 10 },
+    { id: 's15', title: 'ノーミス15', desc: '15問連続 ノーミス', icon: 'Target', earned: d.maxStreak >= 15 },
+    { id: 's25', title: 'ノーミス25', desc: '25問連続 ノーミス', icon: 'Rocket', earned: d.maxStreak >= 25 },
     // テスト表面（知識技能・満点100）
     { id: 'to50', title: '表テスト50', desc: 'テスト表で 50点いじょう', icon: 'ClipboardCheck', earned: omote >= 50 },
     { id: 'to75', title: '表テスト75', desc: 'テスト表で 75点いじょう', icon: 'ClipboardCheck', earned: omote >= 75 },
-    { id: 'to90', title: '表テスト90', desc: 'テスト表で 90点いじょう', icon: 'ClipboardCheck', earned: omote >= 90 },
+    { id: 'to85', title: '表テスト85', desc: 'テスト表で 85点いじょう', icon: 'ClipboardCheck', earned: omote >= 85 },
     { id: 'to100', title: '表テスト満点', desc: 'テスト表で 100点', icon: 'Trophy', earned: omote >= 100 },
     // テスト裏面（思考判断表現・満点50）
     { id: 'tu25', title: '裏テスト25', desc: 'テスト裏で 25点いじょう', icon: 'BookOpen', earned: ura >= 25 },
-    { id: 'tu40', title: '裏テスト40', desc: 'テスト裏で 40点いじょう', icon: 'BookOpen', earned: ura >= 40 },
+    { id: 'tu35', title: '裏テスト35', desc: 'テスト裏で 35点いじょう', icon: 'BookOpen', earned: ura >= 35 },
     { id: 'tu50', title: '裏テスト満点', desc: 'テスト裏で 50点', icon: 'Award', earned: ura >= 50 },
     // テスト両面（表＋裏・満点150）
     { id: 'tt75', title: '両面テスト75', desc: '両面テストで 75点いじょう', icon: 'Gem', earned: total >= 75 },
     { id: 'tt100', title: '両面テスト100', desc: '両面テストで 100点いじょう', icon: 'Gem', earned: total >= 100 },
-    { id: 'tt140', title: '両面テスト140', desc: '両面テストで 140点いじょう', icon: 'Crown', earned: total >= 140 },
+    { id: 'tt130', title: '両面テスト130', desc: '両面テストで 130点いじょう', icon: 'Crown', earned: total >= 130 },
     { id: 'tt150', title: '両面テスト満点', desc: '両面テストで 150点', icon: 'Crown', earned: total >= 150 },
     // くり返し満点（高難度・2〜3段階）: 一度の満点より ずっと むずかしい「安定して満点」を評価する
-    { id: 'to100x3', title: '表マイスターI', desc: '表テストで 満点を 3回', icon: 'ShieldCheck', earned: (d.testPerfectCounts?.omote ?? 0) >= 3 },
-    { id: 'to100x5', title: '表マイスターII', desc: '表テストで 満点を 5回', icon: 'ShieldCheck', earned: (d.testPerfectCounts?.omote ?? 0) >= 5 },
-    { id: 'tu50x3', title: '裏マイスターI', desc: '裏テストで 満点を 3回', icon: 'ShieldCheck', earned: (d.testPerfectCounts?.ura ?? 0) >= 3 },
-    { id: 'tu50x5', title: '裏マイスターII', desc: '裏テストで 満点を 5回', icon: 'ShieldCheck', earned: (d.testPerfectCounts?.ura ?? 0) >= 5 },
-    { id: 'tt150x3', title: '両面マイスターI', desc: '両面テストで 満点を 3回', icon: 'Gem', earned: (d.testPerfectCounts?.total ?? 0) >= 3 },
-    { id: 'tt150x5', title: '両面マイスターII', desc: '両面テストで 満点を 5回', icon: 'Gem', earned: (d.testPerfectCounts?.total ?? 0) >= 5 },
-    { id: 'tt150x10', title: '両面マイスターIII', desc: '両面テストで 満点を 10回', icon: 'Gem', earned: (d.testPerfectCounts?.total ?? 0) >= 10 },
+    { id: 'to100x2', title: '表マイスターI', desc: '表テストで 満点を 2回', icon: 'ShieldCheck', earned: (d.testPerfectCounts?.omote ?? 0) >= 2 },
+    { id: 'to100x3', title: '表マイスターII', desc: '表テストで 満点を 3回', icon: 'ShieldCheck', earned: (d.testPerfectCounts?.omote ?? 0) >= 3 },
+    { id: 'tu50x2', title: '裏マイスターI', desc: '裏テストで 満点を 2回', icon: 'ShieldCheck', earned: (d.testPerfectCounts?.ura ?? 0) >= 2 },
+    { id: 'tu50x3', title: '裏マイスターII', desc: '裏テストで 満点を 3回', icon: 'ShieldCheck', earned: (d.testPerfectCounts?.ura ?? 0) >= 3 },
+    { id: 'tt150x2', title: '両面マイスターI', desc: '両面テストで 満点を 2回', icon: 'Gem', earned: (d.testPerfectCounts?.total ?? 0) >= 2 },
+    { id: 'tt150x3', title: '両面マイスターII', desc: '両面テストで 満点を 3回', icon: 'Gem', earned: (d.testPerfectCounts?.total ?? 0) >= 3 },
+    { id: 'tt150x5', title: '両面マイスターIII', desc: '両面テストで 満点を 5回', icon: 'Gem', earned: (d.testPerfectCounts?.total ?? 0) >= 5 },
   ];
   MODULES.forEach((m) =>
     list.push({
