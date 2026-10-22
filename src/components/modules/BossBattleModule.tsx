@@ -59,7 +59,8 @@ function createAttackVideos(): AttackVideos {
     v.setAttribute('playsinline', '');
     v.setAttribute('aria-hidden', 'true');
     v.tabIndex = -1;
-    v.className = 'absolute inset-0 w-full h-full object-cover transition-opacity duration-300 opacity-0';
+    // pointer-events-none: 動画はタップを受けない。受けると、見えない動画が画面のボタンをふさぐ（ボス戦のあと固まって見えた）
+    v.className = 'absolute inset-0 w-full h-full object-cover transition-opacity duration-300 opacity-0 pointer-events-none';
     const types = withAudio ? [VIDEO_TYPE.mp4WithAudio, VIDEO_TYPE.webmWithAudio] : [VIDEO_TYPE.mp4, VIDEO_TYPE.webm];
     for (const [url, type] of [[src.mp4, types[0]], [src.webm, types[1]]] as const) {
       const s = document.createElement('source');
@@ -481,8 +482,10 @@ export const BossBattleModule: React.FC<Props> = ({ onExit }) => {
   };
 
 
+  // key: 結果の画面に切りかわったとき、React がこの外枠を使い回さないようにする。
+  // 使い回すと、外から差しこんだ攻撃動画が結果の画面の中に残り、ボタンをふさぐ（ボスを倒したあと押せなくなった）
   return (
-    <div className="relative w-full h-full overflow-hidden bg-black select-none">
+    <div key="battle" className="relative w-full h-full overflow-hidden bg-black select-none">
       {/* ボス動画レイヤー */}
       <video autoPlay loop muted playsInline preload="auto" poster={IDLE_POSTER} disablePictureInPicture tabIndex={-1} className="absolute inset-0 w-full h-full object-cover">
         <source src={VIDEO.idle.mp4} type={VIDEO_TYPE.mp4} />
