@@ -13,11 +13,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useSettingsStore } from '../../store/settingsStore';
 import { BgMode, ThemeVideo, VideoSources, detectBgMode } from './ThemeVideo';
+import { media } from '../../lib/media';
 
 const VIDEO: VideoSources = {
-  webm: '/videos/war/sensou.webm',
-  mp4: '/videos/war/sensou.mp4',
-  poster: '/videos/war/sensou-poster.jpg',
+  webm: media('/videos/gaisu/war/sensou.webm'),
+  mp4: media('/videos/gaisu/war/sensou.mp4'),
+  poster: media('/videos/gaisu/war/sensou-poster.jpg'),
 };
 
 /** 動画の明るい炎の上でも文字が読めるように暗く落とし、四隅をしぼって奥行きを出す。 */

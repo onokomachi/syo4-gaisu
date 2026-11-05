@@ -24,11 +24,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useSettingsStore } from '../../store/settingsStore';
 import { BgMode, ThemeVideo, VideoSources, detectBgMode } from './ThemeVideo';
+import { media } from '../../lib/media';
 
 const VIDEO: VideoSources = {
-  webm: '/videos/boss/idle.webm',
-  mp4: '/videos/boss/idle.mp4',
-  poster: '/videos/boss/idle-poster.jpg',
+  webm: media('/videos/gaisu/boss/idle.webm'),
+  mp4: media('/videos/gaisu/boss/idle.mp4'),
+  poster: media('/videos/gaisu/boss/idle-poster.jpg'),
   preferMp4: true,
 };
 

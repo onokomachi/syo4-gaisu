@@ -31,17 +31,18 @@ import { RangeRound } from './RangeModule';
 import { SumDiffRound } from './SumDiffModule';
 import { ProdQuotRound } from './ProdQuotModule';
 import { RoundJudgeRound } from './RoundJudgeModule';
+import { media } from '../../lib/media';
 
 interface Props { onExit: () => void; }
 
 const BOSS_NAME = '冥界神';
 /** 同じ画質なら MP4 のほうが小さいので MP4 を先に、再生できないブラウザだけ WebM を読む。 */
 const VIDEO = {
-  idle: { mp4: '/videos/boss/idle.mp4', webm: '/videos/boss/idle.webm' },
-  normal: { mp4: '/videos/boss/attack-normal.mp4', webm: '/videos/boss/attack-normal.webm' },
-  special: { mp4: '/videos/boss/attack-special.mp4', webm: '/videos/boss/attack-special.webm' },
+  idle: { mp4: media('/videos/gaisu/boss/idle.mp4'), webm: media('/videos/gaisu/boss/idle.webm') },
+  normal: { mp4: media('/videos/gaisu/boss/attack-normal.mp4'), webm: media('/videos/gaisu/boss/attack-normal.webm') },
+  special: { mp4: media('/videos/gaisu/boss/attack-special.mp4'), webm: media('/videos/gaisu/boss/attack-special.webm') },
 };
-const IDLE_POSTER = '/videos/boss/idle-poster.jpg';
+const IDLE_POSTER = media('/videos/gaisu/boss/idle-poster.jpg');
 type AttackVideos = Record<'normal' | 'special', HTMLVideoElement>;
 
 /**
