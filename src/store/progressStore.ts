@@ -63,6 +63,9 @@ export interface ResultRecord {
   detail?: TestDetail; // 本番テストのときだけ。各設問の問題・正答・○×
   /** その問題で何回まちがえたか。0なら一発正解 */
   mistakes?: number;
+  /** その問題の最初のまちがいの型（src/lib/missTypes.ts）と答え。PRISM の「多いまちがい」用（2026-11-15） */
+  missType?: string;
+  missAnswer?: string;
   /**
    * 正解までたどりつかずに離れたか。
    * これを残さないと「できなかった問題」ほど記録から消える。
